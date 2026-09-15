@@ -1,42 +1,44 @@
 // main.js
-// アプリのエントリーポイント。タイトル画面の表示と、
-// HUNT / CHALLENGE60 モードへの切り替えだけを担当する「司令塔」。
-// 新しいモード(例: 将来のMEASUREモード)を足すときは、
-// 1) xxxx-mode.js を追加
-// 2) ここにボタンと呼び出しを1つ足す
-// だけで済むようにしてある。
+// 長さハンターのタイトル画面と、3モード×2レベルの切り替えを担当。
 
-import { startHuntMode } from './hunt-mode.js';
-import { startChallengeMode } from './challenge-mode.js';
+import { startMeasureMode } from './measure-mode.js';
 import { ASSETS, withFallback } from './assets.js';
 import { getStats } from './storage.js';
 
 const app = document.getElementById('app');
 
+const MODES = [
+  { key: 'cm', title: 'CMのみ', description: 'cmの目盛だけで答える' },
+  { key: 'mm', title: 'MMあり', description: '5mmの目盛を使い、cm＋mmで答える' },
+  { key: 'decimal', title: '小数で答える', description: 'mmまで読み、cmの小数で答える' }
+];
+
 function showTitle() {
   const stats = getStats();
-
   app.innerHTML = `
     <div class="title-screen">
       <div class="navi-wrap" id="naviWrap"></div>
-      <h1>ものさしハンター</h1>
-      <p class="lead">ものさしを使わず、目で見て長さを当てよう!</p>
+      <h1>長さハンター</h1>
+      <p class="lead">ものさしを使わず、目盛を読んで長さをハントしよう！</p>
 
-      <fieldset class="difficulty-select">
-        <legend>むずかしさ</legend>
-        <label><input type="radio" name="diff" value="easy" checked> 1cm単位(かんたん)</label>
-        <label><input type="radio" name="diff" value="hard"> 1mm単位(むずかしい)</label>
-      </fieldset>
+      <div class="select-panel">
+        <div class="select-title">モード</div>
+        <div class="mode-buttons">
+          ${MODES.map((mode, i) => `
+            <button class="mode-btn ${i === 0 ? 'selected' : ''}" data-mode="${mode.key}">
+              <span>${mode.title}</span><small>${mode.description}</small>
+            </button>
+          `).join('')}
+        </div>
 
-      <div class="mode-buttons">
-        <button id="huntBtn" class="mode-btn">ハントモード</button>
-        <button id="challengeBtn" class="mode-btn challenge">チャレンジ60</button>
+        <div class="select-title">レベル</div>
+        <div class="level-buttons">
+          <button class="level-btn selected" data-level="1">レベル1 <small>0から</small></button>
+          <button class="level-btn" data-level="2">レベル2 <small>とちゅうから</small></button>
+        </div>
       </div>
 
-      <p class="stats">
-        れんぞく正解さいこう: ${stats.hunt.bestStreak}回 /
-        チャレンジさいこうスコア: ${stats.challenge.bestScore}
-      </p>
+      <p class="stats">れんぞく正解さいこう: ${stats.hunt.bestStreak}回</p>
     </div>
   `;
 
@@ -46,24 +48,46 @@ function showTitle() {
   withFallback(naviImg, 0);
   app.querySelector('#naviWrap').appendChild(naviImg);
 
-  const getDifficulty = () => app.querySelector('input[name="diff"]:checked').value;
+  let selectedMode = 'cm';
+  let selectedLevel = 1;
 
-  app.querySelector('#huntBtn').addEventListener('click', () => {
-    goToGameScreen((root) => startHuntMode(root, { difficulty: getDifficulty() }));
+  app.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      app.querySelectorAll('.mode-btn').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedMode = btn.dataset.mode;
+    });
   });
 
-  app.querySelector('#challengeBtn').addEventListener('click', () => {
-    goToGameScreen((root) => startChallengeMode(root, { difficulty: getDifficulty() }));
+  app.querySelectorAll('.level-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      app.querySelectorAll('.level-btn').forEach((b) => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedLevel = Number(btn.dataset.level);
+    });
+  });
+
+  app.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.addEventListener('dblclick', () => startGame(selectedMode, selectedLevel));
+  });
+
+  const startButtons = app.querySelectorAll('.mode-btn');
+  startButtons.forEach((btn) => {
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+  });
+
+  // モード選択ボタンを、そのままスタートボタンとしても使う。
+  app.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => startGame(selectedMode, selectedLevel));
   });
 }
 
-function goToGameScreen(startFn) {
+function startGame(mode, level) {
   app.innerHTML = `
     <div id="gameRoot" class="game-root"></div>
     <button id="backBtn" class="back-btn">タイトルへもどる</button>
   `;
-  const root = app.querySelector('#gameRoot');
-  startFn(root);
+  startMeasureMode(app.querySelector('#gameRoot'), { mode, level });
   app.querySelector('#backBtn').addEventListener('click', showTitle);
 }
 
