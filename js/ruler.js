@@ -1,11 +1,10 @@
 // ruler.js
-// 長さハンターの定規描画。モードに応じて目盛りの細かさを切り替える。
+// 長さハンターの定規描画。
+// 通常モードは学習用に整理した目盛、小数モードは1mmを読むための実物風定規を使用する。
 
 export const RulerConfig = {
   minMM: 0,
   maxMM: 200,
-  // 1mmをタブレットでも視認できるよう、1mm = 6px。
-  // 20cmで約1200pxになるため、タブレットでは横スクロールして読む。
   pxPerMM: 6,
 
   tickHeight: { mm: 9, mm5: 16, cm: 28 },
@@ -21,7 +20,12 @@ export const RulerConfig = {
   showUnitOnLastLabel: true,
 
   baselineY: 64,
-  marginTop: 26
+  marginTop: 26,
+
+  // SVG Silh / Pixabay の CC0 定規素材。
+  // 小数モードだけで使用し、CM/MMモードの学習上の目盛設計は維持する。
+  referenceRulerUrl: 'https://svgsilh.com/svg/148506.svg',
+  referenceRulerPxPerMM: 6.4
 };
 
 export function mmToPx(mm, config = RulerConfig) {
@@ -75,6 +79,20 @@ export function renderRulerSVG(userConfig = {}) {
 }
 
 export function mountRuler(container, userConfig = {}) {
-  container.innerHTML = renderRulerSVG(userConfig);
+  const config = { ...RulerConfig, ...userConfig };
+
+  if (config.useReferenceRuler) {
+    const width = config.maxMM * config.referenceRulerPxPerMM;
+    container.innerHTML = `<div class="reference-ruler-wrap"><img class="reference-ruler" src="${config.referenceRulerUrl}" alt="1mm目盛の定規" draggable="false"></div>`;
+    const img = container.querySelector('.reference-ruler');
+    img.style.width = `${width}px`;
+    img.style.height = 'auto';
+    img.addEventListener('error', () => {
+      container.innerHTML = renderRulerSVG(config);
+    }, { once: true });
+    return img;
+  }
+
+  container.innerHTML = renderRulerSVG(config);
   return container.querySelector('svg');
 }
