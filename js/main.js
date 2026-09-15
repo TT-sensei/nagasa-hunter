@@ -1,84 +1,81 @@
-// main.js
-// 長さハンターのタイトル画面と、3モード×2レベルの切り替えを担当。
-
+// ものさしハンター / edu-kit設計版
 import { startMeasureMode } from './measure-mode.js';
-import { ASSETS, withFallback } from './assets.js';
 import { getStats } from './storage.js';
 
 const app = document.getElementById('app');
 
 const MODES = [
-  { key: 'cm', title: 'CMのみ', description: 'cmの目盛だけで答える' },
-  { key: 'mm', title: 'MMあり', description: '5mmの目盛を使い、cm＋mmで答える' },
-  { key: 'decimal', title: '小数で答える', description: 'mmまで読み、cmの小数で答える' }
+  { key: 'cm', title: 'cmまで', description: '1cmごとの目盛を読む', example: '□ cm', color: 'primary' },
+  { key: 'mm', title: 'cmとmmまで', description: '1mmの目盛まで読んで表す', example: '□ cm □ mm', color: 'accent' },
+  { key: 'decimal', title: '小数で表す', description: '1mmを0.1cmとして表す', example: '□.□ cm', color: 'success' }
 ];
 
 function showTitle() {
   const stats = getStats();
-  app.innerHTML = `
-    <div class="title-screen">
-      <div class="navi-wrap" id="naviWrap"></div>
-      <h1>長さハンター</h1>
-      <p class="lead">目盛を読んで、ナビアンとの長さ勝負！</p>
+  const savedMode = localStorage.getItem('nagasa-hunter-mode') || 'cm';
+  const activeMode = MODES.some((mode) => mode.key === savedMode) ? savedMode : 'cm';
 
-      <div class="select-panel">
-        <div class="select-title">モードを選ぶ</div>
-        <div class="mode-buttons">
-          ${MODES.map((mode, i) => `
-            <button type="button" class="mode-btn ${i === 0 ? 'selected' : ''}" data-mode="${mode.key}">
-              <span>${mode.title}</span><small>${mode.description}</small>
+  app.innerHTML = `
+    <div class="edu-container edu-main hunter-home">
+      <header class="home-header">
+        <div>
+          <div class="home-kicker">MONOSASHI HUNTER</div>
+          <h1 class="edu-page-title">長さを読もう</h1>
+          <p class="edu-page-lead">ものさしの目盛を見て、長さを答えます。</p>
+        </div>
+        <div class="edu-stat home-record" aria-label="これまでの記録">
+          <div class="edu-stat-label">最高れんぞく正解</div>
+          <div class="edu-stat-value">${stats.hunt.bestStreak}<span>回</span></div>
+        </div>
+      </header>
+
+      <section class="mode-picker edu-card edu-card-pad" aria-labelledby="modeTitle">
+        <div class="mode-picker-head">
+          <div>
+            <h2 id="modeTitle" class="edu-card-title">どこまで読めるかな？</h2>
+            <p class="edu-card-meta">今の学習に合うものを選びます。</p>
+          </div>
+          <span class="edu-badge edu-badge-neutral">れんしゅう</span>
+        </div>
+        <div class="mode-grid">
+          ${MODES.map((mode) => `
+            <button type="button" class="mode-card ${mode.key === activeMode ? 'is-selected' : ''}" data-mode="${mode.key}">
+              <span class="mode-card-title">${mode.title}</span>
+              <span class="mode-card-example">${mode.example}</span>
+              <span class="mode-card-note">${mode.description}</span>
             </button>
           `).join('')}
         </div>
+        <button type="button" id="startBtn" class="edu-btn edu-btn-primary edu-btn-block start-action">このコースをはじめる</button>
+      </section>
 
-        <div class="select-title">レベルを選ぶ</div>
-        <div class="level-buttons">
-          <button type="button" class="level-btn selected" data-level="1">レベル1<small>0から</small></button>
-          <button type="button" class="level-btn" data-level="2">レベル2<small>とちゅうから</small></button>
-        </div>
-
-        <button type="button" id="startBtn" class="start-btn">はじめる！</button>
-      </div>
-
-      <p class="stats">れんぞく正解さいこう: ${stats.hunt.bestStreak}回</p>
+      <section class="home-tip edu-note" aria-label="読み方のポイント">
+        <div class="edu-note-title">読むポイント</div>
+        <p>はじまりとおわりの位置を見て、その間の長さを読みます。0から始まらない問題も出ます。</p>
+      </section>
     </div>
   `;
 
-  const naviImg = document.createElement('img');
-  naviImg.src = ASSETS.navian.normal;
-  naviImg.alt = 'ナビアン';
-  withFallback(naviImg, 0);
-  app.querySelector('#naviWrap').appendChild(naviImg);
-
-  let selectedMode = 'cm';
-  let selectedLevel = 1;
-
-  app.querySelectorAll('.mode-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      app.querySelectorAll('.mode-btn').forEach((b) => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedMode = btn.dataset.mode;
+  let selectedMode = activeMode;
+  app.querySelectorAll('.mode-card').forEach((button) => {
+    button.addEventListener('click', () => {
+      app.querySelectorAll('.mode-card').forEach((item) => item.classList.remove('is-selected'));
+      button.classList.add('is-selected');
+      selectedMode = button.dataset.mode;
+      localStorage.setItem('nagasa-hunter-mode', selectedMode);
     });
   });
 
-  app.querySelectorAll('.level-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      app.querySelectorAll('.level-btn').forEach((b) => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      selectedLevel = Number(btn.dataset.level);
-    });
-  });
-
-  app.querySelector('#startBtn').addEventListener('click', () => startGame(selectedMode, selectedLevel));
+  app.querySelector('#startBtn').addEventListener('click', () => startGame(selectedMode));
 }
 
-function startGame(mode, level) {
+function startGame(mode) {
   app.innerHTML = `
-    <div id="gameRoot" class="game-root"></div>
-    <button id="backBtn" class="back-btn">タイトルへもどる</button>
+    <div class="edu-container edu-main game-page">
+      <div id="gameRoot"></div>
+    </div>
   `;
-  startMeasureMode(app.querySelector('#gameRoot'), { mode, level });
-  app.querySelector('#backBtn').addEventListener('click', showTitle);
+  startMeasureMode(app.querySelector('#gameRoot'), { mode });
 }
 
 showTitle();
