@@ -5,7 +5,7 @@
 body {
   margin: 0;
   font-family: "Hiragino Maru Gothic ProN", "Meiryo", sans-serif;
-  background: linear-gradient(180deg, #e0f2fe 0%, #f8fafc 100%);
+  background: linear-gradient(rgba(240,249,255,.28), rgba(248,250,252,.55)), url("https://raw.githubusercontent.com/TT-sensei/navi-character-/main/assets/web/fantasy/backgrounds/riverbank.webp") center / cover fixed;
   color: #1e293b;
   min-height: 100vh;
   display: flex;
@@ -15,21 +15,21 @@ body {
 
 #app { width: 100%; max-width: 820px; }
 
-/* --- タイトル画面 --- */
 .title-screen { text-align: center; padding: 24px 12px; }
 .navi-wrap { height: 110px; display: flex; justify-content: center; align-items: flex-end; }
 .navi-wrap img, .navi-wrap .placeholder-monster { width: 100px; height: 100px; object-fit: contain; }
 
 h1 { font-size: 32px; margin: 8px 0 4px; }
-.lead { font-size: 15px; color: #475569; margin: 0 0 18px; }
+.lead { font-size: 15px; color: #334155; margin: 0 0 18px; }
 
 .select-panel {
-  background: rgba(255,255,255,.9);
-  border: 1px solid #cbd5e1;
+  background: rgba(255,255,255,.94);
+  border: 1px solid rgba(203,213,225,.95);
   border-radius: 16px;
   padding: 18px;
   max-width: 760px;
   margin: 0 auto;
+  box-shadow: 0 10px 30px rgba(15,23,42,.10);
 }
 
 .select-title {
@@ -83,14 +83,13 @@ h1 { font-size: 32px; margin: 8px 0 4px; }
   box-shadow: 0 3px 0 #15803d;
 }
 .start-btn:active { transform: translateY(2px); box-shadow: none; }
-.stats { font-size: 12px; color: #64748b; margin-top: 14px; }
+.stats { font-size: 12px; color: #475569; margin-top: 14px; }
 
-/* --- ゲーム画面 --- */
 .game-root {
-  background: #fff;
+  background: rgba(255,255,255,.96);
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  box-shadow: 0 10px 30px rgba(15,23,42,.12);
 }
 
 .mode-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; gap: 12px; }
@@ -111,47 +110,49 @@ h1 { font-size: 32px; margin: 8px 0 4px; }
 .stage-wrap, .ruler { overflow-x: auto; overflow-y: hidden; }
 .stage {
   position: relative;
-  height: 116px;
+  height: 126px;
   min-width: 100%;
-  background: #f0f9ff;
+  background: rgba(224,242,254,.35);
   border-radius: 12px 12px 0 0;
+  box-shadow: inset 0 -1px 0 rgba(148,163,184,.35);
 }
 .ruler { margin-top: 0; }
 .ruler svg { display: block; }
 
-/* --- はかるもの --- */
 .measure-segment {
   position: absolute;
-  top: 58px;
-  height: 8px;
+  top: 68px;
+  height: 9px;
   min-width: 8px;
   transform: translateY(-50%);
   background: #38bdf8;
   border-radius: 999px;
+  box-shadow: 0 2px 0 rgba(2,132,199,.22);
 }
 .endpoint {
   position: absolute;
-  top: 38px;
+  top: 48px;
   width: 3px;
   height: 40px;
   transform: translateX(-50%);
   background: #1e293b;
   border-radius: 2px;
 }
-.endpoint.start { top: 39px; }
-.endpoint.end { top: 37px; height: 44px; }
+.endpoint.start { top: 49px; }
+.endpoint.end { top: 47px; height: 44px; }
 
 .target {
   position: absolute;
-  top: 12px;
-  width: 46px;
-  height: 46px;
+  top: 2px;
+  width: 64px;
+  height: 64px;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 4;
+  filter: drop-shadow(0 3px 3px rgba(15,23,42,.18));
 }
 .target img, .target .placeholder-monster {
-  width: 46px;
-  height: 46px;
+  width: 64px;
+  height: 64px;
   object-fit: contain;
   display: flex;
   align-items: center;
@@ -161,18 +162,17 @@ h1 { font-size: 32px; margin: 8px 0 4px; }
 
 .answer-marker {
   position: absolute;
-  top: 31px;
-  height: 55px;
+  top: 37px;
+  height: 58px;
   transform: translateX(-50%);
-  font-size: 42px;
+  font-size: 46px;
   line-height: 1;
   font-weight: 700;
-  z-index: 3;
+  z-index: 5;
 }
 .answer-marker.correct { color: #16a34a; }
 .answer-marker.wrong { color: #dc2626; }
 
-/* --- 回答 --- */
 .guess-form { display: flex; gap: 8px; align-items: center; margin: 14px 0 10px; flex-wrap: wrap; font-size: 18px; }
 .guess-form input {
   font-size: 20px;
