@@ -44,8 +44,6 @@ export function startMeasureMode(root, { mode = 'cm', level = 1, timed = false }
   let deadline = null;
   updateProgress();
 
-  // タイマーは「1秒ごとに60→59→…」と減らす方式ではなく、終了時刻との差から計算。
-  // 端末の処理遅延やバックグラウンド復帰があっても、60秒を正確に保つ。
   if (timed) {
     deadline = Date.now() + 60000;
     timerEl.textContent = '60';
@@ -207,11 +205,17 @@ function addTarget(stage, mm, rulerConfig) {
 function setupAnswerInputs(root, modeInfo) {
   const decimalArea = root.querySelector('#decimalAnswer');
   const splitArea = root.querySelector('#splitAnswer');
-  if (modeInfo.key === 'mm') {
-    decimalArea.hidden = true; splitArea.hidden = false;
-  } else {
-    decimalArea.hidden = false; splitArea.hidden = true;
-    root.querySelector('#guessInput').step = modeInfo.key === 'cm' ? '1' : '0.1';
+  const guessInput = root.querySelector('#guessInput');
+
+  // edu-kit側のCSSで [hidden] が上書きされる場合にも確実に1種類だけ表示する。
+  decimalArea.hidden = modeInfo.key === 'mm';
+  splitArea.hidden = modeInfo.key !== 'mm';
+  decimalArea.style.display = modeInfo.key === 'mm' ? 'none' : 'inline-flex';
+  splitArea.style.display = modeInfo.key === 'mm' ? 'inline-flex' : 'none';
+
+  if (guessInput) {
+    guessInput.step = modeInfo.key === 'cm' ? '1' : '0.1';
+    guessInput.setAttribute('aria-label', modeInfo.key === 'decimal' ? '長さ（小数）' : '長さ（cm）');
   }
 }
 function resetInputs(root) { root.querySelectorAll('input').forEach((input) => { input.value = ''; }); }
