@@ -1,21 +1,19 @@
 // ruler.js
-// 「ものさしハンター」定規(目盛り)描画モジュール
-//
-// ANGLE HUNTER の分度器モジュールと同じ設計思想:
-//   ・座標変換(mm → px)を独立した関数として切り出す
-//   ・目盛り/ラベルの見た目はすべて RulerConfig で調整できるようにする
-//   ・的の位置計算(target.js)からも mmToPx() をそのまま再利用する
+// 長さハンターの定規描画。モードに応じて目盛りの細かさを切り替える。
 
 export const RulerConfig = {
   minMM: 0,
-  maxMM: 200,        // 20cm
+  maxMM: 200,
   pxPerMM: 4,
 
-  tickHeight: { mm: 8, mm5: 14, cm: 24 },   // 1mm短い/5mmやや長い/1cm一番長い
+  tickHeight: { mm: 7, mm5: 13, cm: 24 },
   tickColor: { mm: '#94a3b8', mm5: '#64748b', cm: '#1e293b' },
   tickWidth: { mm: 1, mm5: 1.5, cm: 2 },
 
-  labelIntervalMM: 50, // 数字は5cmごとに表示(1cmごとではない)
+  tickStepMM: 1,
+  showOneMMTicks: true,
+  showFiveMMTicks: true,
+  labelIntervalMM: 50,
   labelFontSize: 14,
   labelColor: '#1e293b',
   showUnitOnLastLabel: true,
@@ -28,18 +26,17 @@ export function mmToPx(mm, config = RulerConfig) {
   return (mm - config.minMM) * config.pxPerMM;
 }
 
-function tickKind(mm) {
+function tickKind(mm, config) {
   if (mm % 10 === 0) return 'cm';
-  if (mm % 5 === 0) return 'mm5';
+  if (mm % 5 === 0 && config.showFiveMMTicks) return 'mm5';
   return 'mm';
 }
 
 function buildTick(mm, config) {
-  const kind = tickKind(mm);
+  const kind = tickKind(mm, config);
   const x = mmToPx(mm, config);
   const h = config.tickHeight[kind];
-  return `<line x1="${x}" y1="${config.baselineY}" x2="${x}" y2="${config.baselineY - h}" ` +
-         `stroke="${config.tickColor[kind]}" stroke-width="${config.tickWidth[kind]}" stroke-linecap="round" />`;
+  return `<line x1="${x}" y1="${config.baselineY}" x2="${x}" y2="${config.baselineY - h}" stroke="${config.tickColor[kind]}" stroke-width="${config.tickWidth[kind]}" stroke-linecap="round" />`;
 }
 
 function buildLabel(mm, config) {
@@ -62,21 +59,17 @@ export function renderRulerSVG(userConfig = {}) {
 
   const width = mmToPx(config.maxMM, config) + 20;
   const height = config.baselineY + config.marginTop;
-
   let ticks = '';
   let labels = '';
-  for (let mm = config.minMM; mm <= config.maxMM; mm++) {
+
+  const step = Math.max(1, config.tickStepMM || 1);
+  for (let mm = config.minMM; mm <= config.maxMM; mm += step) {
     ticks += buildTick(mm, config);
-    if (mm % config.labelIntervalMM === 0) {
-      labels += buildLabel(mm, config);
-    }
+    if (mm % config.labelIntervalMM === 0) labels += buildLabel(mm, config);
   }
 
-  const baseline = `<line x1="0" y1="${config.baselineY}" x2="${width - 20}" y2="${config.baselineY}" ` +
-                    `stroke="${config.tickColor.cm}" stroke-width="2" />`;
-
-  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">` +
-         `${baseline}${ticks}${labels}</svg>`;
+  const baseline = `<line x1="0" y1="${config.baselineY}" x2="${width - 20}" y2="${config.baselineY}" stroke="${config.tickColor.cm}" stroke-width="2" />`;
+  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${baseline}${ticks}${labels}</svg>`;
 }
 
 export function mountRuler(container, userConfig = {}) {
