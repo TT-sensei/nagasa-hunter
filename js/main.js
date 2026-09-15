@@ -1,6 +1,6 @@
 // ものさしハンター / edu-kit設計版
 import { startMeasureMode } from './measure-mode.js';
-import { getStats } from './storage.js';
+import { getStats, getPreferences, savePreferences } from './storage.js';
 
 const app = document.getElementById('app');
 
@@ -12,9 +12,10 @@ const MODES = [
 
 function showTitle() {
   const stats = getStats();
-  const savedMode = localStorage.getItem('nagasa-hunter-mode') || 'cm';
-  const savedLevel = Number(localStorage.getItem('nagasa-hunter-level')) === 2 ? 2 : 1;
-  const activeMode = MODES.some((mode) => mode.key === savedMode) ? savedMode : 'cm';
+  const preferences = getPreferences();
+  const savedMode = MODES.some((mode) => mode.key === preferences.mode) ? preferences.mode : 'cm';
+  const savedLevel = Number(preferences.level) === 2 ? 2 : 1;
+  const activeMode = MODES.find((mode) => mode.key === savedMode) || MODES[0];
 
   app.innerHTML = `
     <div class="edu-container edu-main hunter-home">
@@ -34,13 +35,13 @@ function showTitle() {
         <div class="mode-picker-head">
           <div>
             <h2 id="modeTitle" class="edu-card-title">どこまで読めるかな？</h2>
-            <p class="edu-card-meta">学習する読み方を選びます。</p>
+            <p class="edu-card-meta">目盛の読み方を選びます。</p>
           </div>
           <span class="edu-badge edu-badge-neutral">れんしゅう</span>
         </div>
         <div class="mode-grid">
           ${MODES.map((mode) => `
-            <button type="button" class="mode-card ${mode.key === activeMode ? 'is-selected' : ''}" data-mode="${mode.key}">
+            <button type="button" class="mode-card ${mode.key === savedMode ? 'is-selected' : ''}" data-mode="${mode.key}">
               <span class="mode-card-title">${mode.title}</span>
               <span class="mode-card-example">${mode.example}</span>
               <span class="mode-card-note">${mode.description}</span>
@@ -63,7 +64,7 @@ function showTitle() {
           </div>
         </div>
 
-        <button type="button" id="startBtn" class="edu-btn edu-btn-primary edu-btn-block start-action">このコースをはじめる</button>
+        <button type="button" id="startBtn" class="edu-btn edu-btn-primary edu-btn-block start-action">れんしゅうをはじめる</button>
       </section>
 
       <section class="home-tip edu-note" aria-label="読み方のポイント">
@@ -73,7 +74,7 @@ function showTitle() {
     </div>
   `;
 
-  let selectedMode = activeMode;
+  let selectedMode = savedMode;
   let selectedLevel = savedLevel;
 
   app.querySelectorAll('.mode-card').forEach((button) => {
@@ -81,7 +82,7 @@ function showTitle() {
       app.querySelectorAll('.mode-card').forEach((item) => item.classList.remove('is-selected'));
       button.classList.add('is-selected');
       selectedMode = button.dataset.mode;
-      localStorage.setItem('nagasa-hunter-mode', selectedMode);
+      savePreferences({ mode: selectedMode });
     });
   });
 
@@ -90,7 +91,7 @@ function showTitle() {
       app.querySelectorAll('.level-card').forEach((item) => item.classList.remove('is-selected'));
       button.classList.add('is-selected');
       selectedLevel = Number(button.dataset.level);
-      localStorage.setItem('nagasa-hunter-level', String(selectedLevel));
+      savePreferences({ level: selectedLevel });
     });
   });
 
