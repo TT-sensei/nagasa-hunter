@@ -1,17 +1,15 @@
-// measure-mode.js
 // 長さハンター本体。
-// 3モード × 2レベルで「目盛を読む」→「長さを考える」を練習する。
-
+// 「はじまりを見る → おわりを読む → 長さを表す」の学習循環を中心にする。
 import { RulerConfig, mountRuler, mmToPx } from './ruler.js';
 import { CONFIG } from './config.js';
 import { ASSETS, withFallback } from './assets.js';
-import { judge } from './game-core.js';
-import { recordHuntResult } from './storage.js';
+import { AnswerChecker } from 'https://tt-sensei.github.io/edu-components/index.js';
+import { recordHuntResult, getStats } from './storage.js';
 
 const MODE = {
-  cm: { key: 'cm', title: 'CMのみ', description: 'cmの目盛を読んで答える', lengthStepMM: 10 },
-  mm: { key: 'mm', title: 'MMあり', description: '5mmの目盛を手がかりに答える', lengthStepMM: 5 },
-  decimal: { key: 'decimal', title: '小数で答える', description: '1mmまで読んで小数で答える', lengthStepMM: 1 }
+  cm: { key: 'cm', title: 'cmまで', description: '1cmごとの目盛を読む', lengthStepMM: 10 },
+  mm: { key: 'mm', title: 'cmとmmまで', description: '1mmの目盛まで読んで表す', lengthStepMM: 1 },
+  decimal: { key: 'decimal', title: '小数で表す', description: '1mmを0.1cmとして表す', lengthStepMM: 1 }
 };
 
 export function startMeasureMode(root, { mode = 'cm', level = 1 } = {}) {
@@ -26,47 +24,74 @@ export function startMeasureMode(root, { mode = 'cm', level = 1 } = {}) {
   const feedback = root.querySelector('#feedback');
   const streakEl = root.querySelector('#streak');
   const resultEl = root.querySelector('#result');
+  const progressEl = root.querySelector('#progressText');
 
   const rulerConfig = getRulerConfig(modeInfo);
   mountRuler(rulerContainer, rulerConfig);
   setBoardWidth(board, rulerConfig);
   setupAnswerInputs(root, modeInfo);
 
+  const answerChecker = new AnswerChecker();
   let current = spawnProblem(stage, modeInfo, levelNo, rulerConfig);
-  let streak = 0;
-  focusFirstInput(root, modeInfo);
+  let streak = getStats().streak;
+  let solved = 0;
+  let locked = false;
+  updateProgress();
 
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (locked) return;
+
     const guessMM = readAnswer(root, modeInfo);
-    if (guessMM === null) return;
+    if (guessMM === null) {
+      showInputHint(root, modeInfo);
+      return;
+    }
 
-    const correct = judge(guessMM, current.lengthMM);
-    streak = correct ? streak + 1 : 0;
+    locked = true;
+    const correct = answerChecker.matches(guessMM, current.lengthMM, { numeric: true });
     const stats = recordHuntResult(correct);
+    streak = stats.streak;
+    solved += 1;
 
+    renderResult(root, current, guessMM, correct, modeInfo, rulerConfig);
+    streakEl.textContent = `れんぞく ${streak}回`;
+    resultEl.textContent = correct ? '正解！' : 'もう一度、目盛を確認しよう';
+    resultEl.className = `answer-result ${correct ? 'is-correct' : 'is-wrong'}`;
     feedback.textContent = correct
-      ? '大成功！長さをハントできた！'
-      : `おしい！答えは ${formatAnswer(current.lengthMM, modeInfo)} だよ`;
-    feedback.className = correct ? 'feedback correct' : 'feedback wrong';
-    streakEl.textContent = `れんぞく正解 ${streak}　/　さいこう ${stats.bestStreak}`;
-    resultEl.textContent = correct ? '✓ 正解' : '答えを確認しよう';
-    resultEl.className = `result ${correct ? 'correct' : 'wrong'}`;
+      ? 'はじまりからおわりまで、きちんと読めました。'
+      : `正しい長さは ${formatAnswer(current.lengthMM, modeInfo)}。線のはじまりとおわりを見くらべよう。`;
+    feedback.className = `feedback-message ${correct ? 'is-correct' : 'is-wrong'}`;
+    progressEl.textContent = `ここまで ${solved}問`;
+    updateProgress(true);
 
-    showLengthMarker(stage, current, rulerConfig, correct);
     form.querySelector('button').disabled = true;
-
     setTimeout(() => {
+      locked = false;
       form.querySelector('button').disabled = false;
       current = spawnProblem(stage, modeInfo, levelNo, rulerConfig);
       resetInputs(root);
+      resetResult(root);
       focusFirstInput(root, modeInfo);
-      feedback.textContent = '';
-      feedback.className = 'feedback';
-      resultEl.textContent = '';
-      resultEl.className = 'result';
+      updateProgress();
     }, CONFIG.spawnDelayMs);
   });
+
+  root.querySelector('#homeBtn').addEventListener('click', () => {
+    window.location.reload();
+  });
+
+  root.querySelector('#retryLevelBtn')?.addEventListener('click', () => {
+    current = spawnProblem(stage, modeInfo, 2, rulerConfig);
+    resetInputs(root);
+    resetResult(root);
+    focusFirstInput(root, modeInfo);
+  });
+
+  function updateProgress(afterAnswer = false) {
+    root.querySelector('#streak').textContent = `れんぞく ${streak}回`;
+    if (!afterAnswer) progressEl.textContent = `ここまで ${solved}問`;
+  }
 }
 
 function getRulerConfig(modeInfo) {
@@ -74,17 +99,17 @@ function getRulerConfig(modeInfo) {
   return {
     ...RulerConfig,
     maxMM: CONFIG.rulerRangeMM,
-    // SVG Silhの定規は20cmを1280pxで描いた素材なので、1mm=6.4pxに合わせる。
-    pxPerMM: isDecimal ? 6.4 : 6,
-    useReferenceRuler: isDecimal,
-    tickStepMM: modeInfo.key === 'cm' ? 10 : (modeInfo.key === 'mm' ? 5 : 1),
-    showOneMMTicks: isDecimal,
-    showFiveMMTicks: modeInfo.key !== 'cm',
-    labelIntervalMM: 50,
-    labelFontSize: 16,
+    pxPerMM: 5.8,
+    referenceRulerPxPerMM: 5.8,
+    useReferenceRuler: true,
+    tickStepMM: 1,
+    showOneMMTicks: true,
+    showFiveMMTicks: true,
+    labelIntervalMM: isDecimal ? 10 : 20,
+    labelFontSize: 15,
     baselineY: 70,
-    marginTop: 28,
-    tickHeight: { mm: 10, mm5: 18, cm: 30 }
+    marginTop: 18,
+    tickHeight: { mm: 8, mm5: 15, cm: 28 }
   };
 }
 
@@ -96,13 +121,14 @@ function spawnProblem(stage, modeInfo, levelNo, rulerConfig) {
   stage.innerHTML = '';
 
   const lengthStep = modeInfo.lengthStepMM;
-  const maxLength = modeInfo.key === 'cm' ? 150 : 155;
-  const lengthMM = randomStep(lengthStep, maxLength, lengthStep);
+  const minLength = modeInfo.key === 'cm' ? 20 : 10;
+  const maxLength = modeInfo.key === 'cm' ? 150 : 160;
+  const lengthMM = randomStep(minLength, maxLength, lengthStep);
 
   let startMM = 0;
   if (levelNo === 2) {
-    const latestStart = CONFIG.rulerRangeMM - lengthMM;
-    startMM = randomStep(10, latestStart, 5);
+    const latestStart = Math.max(10, CONFIG.rulerRangeMM - lengthMM - 10);
+    startMM = randomStep(10, latestStart, 1);
   }
   const endMM = startMM + lengthMM;
 
@@ -168,6 +194,14 @@ function focusFirstInput(root, modeInfo) {
   el?.focus();
 }
 
+function showInputHint(root, modeInfo) {
+  const feedback = root.querySelector('#feedback');
+  feedback.textContent = modeInfo.key === 'mm'
+    ? 'cmとmmの両方を入れてみよう。'
+    : '長さを数字で入れてみよう。';
+  feedback.className = 'feedback-message is-hint';
+}
+
 function readAnswer(root, modeInfo) {
   if (modeInfo.key === 'mm') {
     const cmRaw = root.querySelector('#answerCm').value;
@@ -194,13 +228,38 @@ function formatAnswer(lengthMM, modeInfo) {
   return `${(lengthMM / 10).toFixed(1)}cm`;
 }
 
-function showLengthMarker(stage, problem, rulerConfig, correct) {
-  stage.querySelector('.answer-marker')?.remove();
-  const marker = document.createElement('div');
-  marker.className = `answer-marker ${correct ? 'correct' : 'wrong'}`;
-  marker.style.left = `${mmToPx(problem.endMM, rulerConfig)}px`;
-  marker.textContent = '│';
-  stage.appendChild(marker);
+function renderResult(root, problem, guessMM, correct, modeInfo, rulerConfig) {
+  const stage = root.querySelector('#stage');
+  stage.querySelectorAll('.answer-marker, .guess-marker').forEach((node) => node.remove());
+
+  const answerMarker = document.createElement('div');
+  answerMarker.className = `answer-marker ${correct ? 'correct' : 'wrong'}`;
+  answerMarker.style.left = `${mmToPx(problem.endMM, rulerConfig)}px`;
+  answerMarker.textContent = '↓';
+  stage.appendChild(answerMarker);
+
+  if (!correct) {
+    const guessMarker = document.createElement('div');
+    guessMarker.className = 'guess-marker';
+    guessMarker.style.left = `${mmToPx(problem.startMM + guessMM, rulerConfig)}px`;
+    guessMarker.textContent = 'あなたの答え';
+    stage.appendChild(guessMarker);
+  }
+
+  root.querySelector('#correctAnswer').textContent = formatAnswer(problem.lengthMM, modeInfo);
+  root.querySelector('#resultGuide').textContent = correct
+    ? 'はじまりからおわりまでの長さを読めた！'
+    : '緑の線がどこからどこまであるか、もう一度見てみよう。';
+}
+
+function resetResult(root) {
+  root.querySelector('#correctAnswer').textContent = '';
+  root.querySelector('#resultGuide').textContent = '';
+  root.querySelector('#feedback').textContent = '';
+  root.querySelector('#feedback').className = 'feedback-message';
+  root.querySelector('#result').textContent = '';
+  root.querySelector('#result').className = 'answer-result';
+  root.querySelector('#stage').querySelectorAll('.answer-marker, .guess-marker').forEach((node) => node.remove());
 }
 
 function randomStep(min, max, step) {
@@ -213,54 +272,87 @@ function randomStep(min, max, step) {
 
 function template(modeInfo, levelNo) {
   return `
-    <div class="mode-header">
-      <div class="header-main">
-        <div class="eyebrow">LENGTH HUNTER</div>
-        <h2>長さハンター <span>${modeInfo.title}</span></h2>
-        <p>${modeInfo.description}</p>
-      </div>
-      <div class="header-stats" id="streak">れんぞく正解 0　/　さいこう 0</div>
-    </div>
-
-    <div class="game-layout">
-      <section class="measure-card">
-        <div class="level-row">
-          <span class="level-badge">LEVEL ${levelNo}</span>
-          <span class="level-note">${levelNo === 1 ? '0からはかる' : 'とちゅうからはかる'}</span>
-        </div>
-        <div class="guide-row">
-          <span>① はじまりを見つける</span>
-          <span>② おわりを読む</span>
-          <span>③ 長さを答える</span>
-        </div>
-        <div class="ruler-scroll" id="rulerScroll">
-          <div class="ruler-board" id="rulerBoard">
-            <div class="stage" id="stage"></div>
-            <div id="ruler" class="ruler"></div>
+    <div class="hunter-shell">
+      <header class="hunter-topbar">
+        <div class="hunter-title-block">
+          <div class="hunter-kicker">MONOSASHI HUNTER</div>
+          <div class="hunter-title-line">
+            <h1>長さを読もう</h1>
+            <span class="edu-badge edu-badge-primary">${modeInfo.title}</span>
           </div>
+          <p>${modeInfo.description}</p>
         </div>
-        <div class="scroll-hint">↔ 定規は横に動かして見ることができます</div>
-      </section>
+        <div class="hunter-top-actions">
+          <span id="progressText" class="progress-text">ここまで 0問</span>
+          <span id="streak" class="streak-pill">れんぞく 0回</span>
+          <button id="homeBtn" type="button" class="edu-btn edu-btn-secondary">もどる</button>
+        </div>
+      </header>
 
-      <aside class="answer-card">
-        <div class="answer-label">答え</div>
-        <div id="result" class="result"></div>
-        <form id="guessForm" class="guess-form">
-          <span>長さは</span>
-          <span id="decimalAnswer">
-            <input id="guessInput" type="number" min="0" inputmode="decimal" aria-label="長さ">
-            <span>cm</span>
-          </span>
-          <span id="splitAnswer" hidden>
-            <input id="answerCm" type="number" min="0" max="20" inputmode="numeric" aria-label="センチメートル">
-            <span>cm</span>
-            <input id="answerMm" type="number" min="0" max="9" inputmode="numeric" aria-label="ミリメートル">
-            <span>mm</span>
-          </span>
-          <button type="submit">つかまえる！</button>
-        </form>
-        <p id="feedback" class="feedback" aria-live="polite"></p>
-      </aside>
+      <div class="level-strip" aria-label="はかり方">
+        <span class="level-strip-label">はかり方</span>
+        <span class="level-chip ${levelNo === 1 ? 'is-current' : ''}"><strong>1</strong> 0から読む</span>
+        <span class="level-chip ${levelNo === 2 ? 'is-current' : ''}"><strong>2</strong> とちゅうから読む</span>
+      </div>
+
+      <div class="learning-layout">
+        <section class="ruler-panel edu-card">
+          <div class="panel-heading">
+            <div>
+              <div class="panel-kicker">まず見る</div>
+              <h2>はじまりとおわりを見よう</h2>
+            </div>
+            <span class="edu-badge edu-badge-neutral">ものさし</span>
+          </div>
+
+          <div class="reading-guide">
+            <span class="guide-item"><i class="guide-dot guide-start"></i>はじまり</span>
+            <span class="guide-arrow">→</span>
+            <span class="guide-item"><i class="guide-dot guide-end"></i>おわり</span>
+          </div>
+
+          <div class="ruler-scroll" id="rulerScroll">
+            <div class="ruler-board" id="rulerBoard">
+              <div class="stage" id="stage"></div>
+              <div id="ruler" class="ruler"></div>
+            </div>
+          </div>
+          <p class="ruler-help">1mmの目盛まで見える大きさです。必要なら横に動かして見てください。</p>
+        </section>
+
+        <aside class="answer-panel edu-card edu-card-pad" aria-label="答える">
+          <div class="answer-heading">
+            <div class="panel-kicker">次に答える</div>
+            <h2>長さは？</h2>
+          </div>
+
+          <div id="result" class="answer-result" aria-live="polite"></div>
+
+          <form id="guessForm" class="answer-form">
+            <div class="answer-line">
+              <span>長さは</span>
+              <span id="decimalAnswer" class="answer-unit-group">
+                <input id="guessInput" class="edu-input answer-input" type="number" min="0" inputmode="decimal" aria-label="長さ">
+                <span>cm</span>
+              </span>
+              <span id="splitAnswer" hidden class="answer-unit-group">
+                <input id="answerCm" class="edu-input answer-input answer-input-small" type="number" min="0" max="20" inputmode="numeric" aria-label="センチメートル">
+                <span>cm</span>
+                <input id="answerMm" class="edu-input answer-input answer-input-small" type="number" min="0" max="9" inputmode="numeric" aria-label="ミリメートル">
+                <span>mm</span>
+              </span>
+            </div>
+            <button type="submit" class="edu-btn edu-btn-primary edu-btn-block answer-submit">答える</button>
+          </form>
+
+          <div class="result-box" aria-live="polite">
+            <div class="result-box-label">答えを確かめる</div>
+            <div id="correctAnswer" class="correct-answer"></div>
+            <p id="resultGuide"></p>
+          </div>
+          <p id="feedback" class="feedback-message"></p>
+        </aside>
+      </div>
     </div>
   `;
 }
