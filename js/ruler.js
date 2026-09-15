@@ -4,22 +4,24 @@
 export const RulerConfig = {
   minMM: 0,
   maxMM: 200,
-  pxPerMM: 4,
+  // 1mmをタブレットでも視認できるよう、1mm = 6px。
+  // 20cmで約1200pxになるため、タブレットでは横スクロールして読む。
+  pxPerMM: 6,
 
-  tickHeight: { mm: 7, mm5: 13, cm: 24 },
+  tickHeight: { mm: 9, mm5: 16, cm: 28 },
   tickColor: { mm: '#94a3b8', mm5: '#64748b', cm: '#1e293b' },
-  tickWidth: { mm: 1, mm5: 1.5, cm: 2 },
+  tickWidth: { mm: 1.25, mm5: 1.8, cm: 2.2 },
 
   tickStepMM: 1,
   showOneMMTicks: true,
   showFiveMMTicks: true,
   labelIntervalMM: 50,
-  labelFontSize: 14,
+  labelFontSize: 16,
   labelColor: '#1e293b',
   showUnitOnLastLabel: true,
 
-  baselineY: 60,
-  marginTop: 20
+  baselineY: 64,
+  marginTop: 26
 };
 
 export function mmToPx(mm, config = RulerConfig) {
@@ -44,7 +46,7 @@ function buildLabel(mm, config) {
   const cm = mm / 10;
   const isLast = mm === config.maxMM;
   const text = (isLast && config.showUnitOnLastLabel) ? `${cm}cm` : `${cm}`;
-  const y = config.baselineY - config.tickHeight.cm - 6;
+  const y = config.baselineY - config.tickHeight.cm - 7;
   return `<text x="${x}" y="${y}" font-size="${config.labelFontSize}" fill="${config.labelColor}" text-anchor="middle">${text}</text>`;
 }
 
@@ -57,7 +59,7 @@ export function renderRulerSVG(userConfig = {}) {
     tickWidth: { ...RulerConfig.tickWidth, ...(userConfig.tickWidth || {}) },
   };
 
-  const width = mmToPx(config.maxMM, config) + 20;
+  const width = mmToPx(config.maxMM, config) + 30;
   const height = config.baselineY + config.marginTop;
   let ticks = '';
   let labels = '';
