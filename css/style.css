@@ -117,10 +117,11 @@
 .ruler-scroll {
   min-height: 0; flex: 1; overflow-x: auto; overflow-y: hidden; border: 1px solid var(--hunter-line);
   border-radius: 13px; background: #f8fbff; -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+  touch-action: pan-x;
 }
-.ruler-board { position: relative; width: max-content; min-width: 100%; min-height: 222px; }
+.ruler-board { position: relative; width: max-content; min-width: 100%; min-height: 238px; }
 .stage {
-  position: absolute; left: 0; top: 0; width: 100%; height: 120px;
+  position: absolute; left: 0; top: 0; width: 100%; height: 128px;
   background: linear-gradient(180deg, #f8fbff 0%, #f0fdf8 100%); border-bottom: 1px solid #dbeafe;
 }
 .ruler { position: absolute; left: 0; top: 116px; width: 100%; }
@@ -132,18 +133,32 @@
   position: absolute; left: 0; top: -73px; display: block; max-width: none; width: auto;
   user-select: none; pointer-events: none;
 }
-.ruler-help { margin: 7px 2px 0; color: #98a2b3; font-size: .71rem; }
+.ruler-help { margin: 7px 2px 0; color: #667085; font-size: .74rem; font-weight: 700; line-height: 1.45; }
 
+/* ものさしの読み取りを視覚的に強調。線・矢印・ラベルが「どこからどこまで」を示す。 */
 .measure-segment {
-  position: absolute; top: 80px; height: 11px; min-width: 6px; transform: translateY(-50%);
+  position: absolute; top: 80px; height: 13px; min-width: 7px; transform: translateY(-50%);
   background: #0f766e; border-radius: 999px; box-shadow: 0 2px 0 rgb(15 118 110 / 18%); z-index: 2;
 }
-.endpoint {
-  position: absolute; top: 44px; width: 3px; height: 68px; transform: translateX(-50%);
-  background: #172033; border-radius: 2px; z-index: 3;
+.measure-segment::before,
+.measure-segment::after {
+  position: absolute; top: 50%; transform: translateY(-50%); color: #0f766e; font-size: 22px; line-height: 1; font-weight: 950;
 }
-.endpoint.start { top: 48px; }
-.endpoint.end { top: 45px; height: 72px; background: #15803d; }
+.measure-segment::before { content: '◀'; left: -11px; }
+.measure-segment::after { content: '▶'; right: -11px; }
+.endpoint {
+  position: absolute; top: 38px; width: 4px; height: 82px; transform: translateX(-50%);
+  background: #172033; border-radius: 3px; z-index: 3;
+}
+.endpoint.start { top: 43px; }
+.endpoint.end { top: 40px; height: 86px; background: #15803d; }
+.endpoint::before {
+  position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  padding: 4px 8px; border-radius: 999px; font-size: 12px; line-height: 1; font-weight: 900;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 10%);
+}
+.endpoint.start::before { content: 'ここから'; top: -1px; background: #172033; color: #fff; }
+.endpoint.end::before { content: 'ここまで'; top: -1px; background: #15803d; color: #fff; }
 .target {
   position: absolute; top: 4px; width: 62px; height: 62px; transform: translateX(-50%); z-index: 5;
   filter: drop-shadow(0 3px 5px rgb(15 23 42 / 14%));
@@ -152,15 +167,16 @@
   width: 62px; height: 62px; object-fit: contain; display: flex; align-items: center; justify-content: center; font-size: 26px;
 }
 .answer-marker {
-  position: absolute; top: 26px; transform: translateX(-50%); z-index: 7;
-  font-size: 38px; line-height: 1; font-weight: 900;
+  position: absolute; top: 21px; transform: translateX(-50%); z-index: 7;
+  font-size: 44px; line-height: 1; font-weight: 950;
+  filter: drop-shadow(0 1px 1px rgb(255 255 255 / 90%));
 }
 .answer-marker.correct { color: #15803d; }
 .answer-marker.wrong { color: #b42318; }
 .guess-marker {
   position: absolute; top: 96px; transform: translateX(-50%); z-index: 7; white-space: nowrap;
-  padding: 3px 6px; border: 1px solid #fca5a5; border-radius: 7px; background: #fff;
-  color: #b42318; font-size: 10px; font-weight: 850;
+  padding: 4px 7px; border: 1px solid #fca5a5; border-radius: 7px; background: #fff;
+  color: #b42318; font-size: 11px; font-weight: 850;
 }
 
 .answer-heading { margin-bottom: 14px; }
@@ -199,12 +215,13 @@
   .learning-layout { grid-template-columns: minmax(0, 1fr) 310px; }
   .ruler-panel { padding: 12px; }
   .answer-panel { padding: 16px; }
-  .ruler-board { min-height: 198px; }
-  .stage { height: 105px; }
+  .ruler-board { min-height: 214px; }
+  .stage { height: 110px; }
   .ruler { top: 101px; }
   .reference-ruler-wrap { height: 88px; }
   .target { width: 56px; height: 56px; }
   .target img, .target .placeholder-monster { width: 56px; height: 56px; }
+  .endpoint::before { font-size: 11px; padding: 3px 6px; }
 }
 
 @media (max-width: 900px) {
@@ -215,6 +232,7 @@
   .learning-layout { grid-template-columns: 1fr; }
   .ruler-panel { min-height: 410px; }
   .answer-panel { min-height: 330px; }
+  .ruler-help { font-size: .78rem; }
 }
 
 @media (max-width: 620px) {
@@ -227,6 +245,8 @@
   .ruler-panel { min-height: 360px; }
   .answer-panel { min-height: 320px; }
   .panel-heading h2, .answer-heading h2 { font-size: 1.05rem; }
+  .endpoint::before { font-size: 10px; padding: 3px 6px; }
+  .measure-segment::before, .measure-segment::after { font-size: 19px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
