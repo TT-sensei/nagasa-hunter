@@ -41,16 +41,21 @@ export function startMeasureMode(root, { mode = 'cm', level = 1, timed = false }
   let timeLeft = timed ? 60 : null;
   let timerId = null;
   let challengeFinished = false;
+  let deadline = null;
   updateProgress();
 
+  // タイマーは「1秒ごとに60→59→…」と減らす方式ではなく、終了時刻との差から計算。
+  // 端末の処理遅延やバックグラウンド復帰があっても、60秒を正確に保つ。
   if (timed) {
+    deadline = Date.now() + 60000;
+    timerEl.textContent = '60';
     timerId = setInterval(() => {
       if (challengeFinished) return;
-      timeLeft -= 1;
+      timeLeft = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
       timerEl.textContent = `${timeLeft}`;
-      timerEl.classList.toggle('urgent', timeLeft <= 10);
+      timerEl.classList.toggle('urgent', timeLeft <= 10 && timeLeft > 0);
       if (timeLeft <= 0) finishChallenge();
-    }, 1000);
+    }, 200);
   }
 
   form.addEventListener('submit', (event) => {
@@ -100,13 +105,6 @@ export function startMeasureMode(root, { mode = 'cm', level = 1, timed = false }
     window.location.reload();
   });
 
-  root.querySelector('#retryLevelBtn')?.addEventListener('click', () => {
-    current = spawnProblem(stage, modeInfo, 2, rulerConfig);
-    resetInputs(root);
-    resetResult(root);
-    focusFirstInput(root, modeInfo);
-  });
-
   root.querySelector('#challengeHome')?.addEventListener('click', () => {
     clearInterval(timerId);
     window.location.reload();
@@ -121,6 +119,11 @@ export function startMeasureMode(root, { mode = 'cm', level = 1, timed = false }
     challengeFinished = true;
     clearInterval(timerId);
     timerId = null;
+    timeLeft = 0;
+    if (timerEl) {
+      timerEl.textContent = '0';
+      timerEl.classList.add('urgent');
+    }
     locked = true;
     form.querySelector('button').disabled = true;
     root.querySelector('#challengeResultNumber').textContent = correctCount;
@@ -270,16 +273,12 @@ function randomStep(min, max, step) {
   const count = Math.floor((last - first) / step) + 1;
   return first + step * Math.floor(Math.random() * count);
 }
-
 function template(modeInfo, levelNo, timed) {
   return `
     <div class="hunter-shell">
       <header class="hunter-topbar">
         <div class="hunter-title-block"><div class="hunter-kicker">MONOSASHI HUNTER</div><div class="hunter-title-line"><h1>長さを読もう</h1><span class="edu-badge edu-badge-primary">${modeInfo.title}</span></div><p>${modeInfo.description}</p></div>
-        <div class="hunter-top-actions">
-          ${timed ? '<span id="timer" class="time-pill">60</span>' : ''}
-          <span id="progressText" class="progress-text">ここまで 0問</span><span id="streak" class="streak-pill">れんぞく 0回</span><button id="homeBtn" type="button" class="edu-btn edu-btn-secondary">もどる</button>
-        </div>
+        <div class="hunter-top-actions">${timed ? '<span id="timer" class="time-pill">60</span>' : ''}<span id="progressText" class="progress-text">ここまで 0問</span><span id="streak" class="streak-pill">れんぞく 0回</span><button id="homeBtn" type="button" class="edu-btn edu-btn-secondary">もどる</button></div>
       </header>
       <div class="level-strip" aria-label="はかり方"><span class="level-strip-label">はかり方</span><span class="level-chip ${levelNo === 1 ? 'is-current' : ''}"><strong>1</strong> 0から読む</span><span class="level-chip ${levelNo === 2 ? 'is-current' : ''}"><strong>2</strong> とちゅうから読む</span></div>
       <div class="learning-layout">
