@@ -17,7 +17,9 @@ export function mmToPx(mm, config = RulerConfig) {
 function renderFallbackSVG(userConfig = {}) {
   const config = { ...RulerConfig, ...userConfig };
   const width = mmToPx(config.maxMM, config) + 4;
-  const baselineY = 72;
+
+  // 数直線ではなく「ものさし」に見えるよう、基準線の下に目盛を出す。
+  const baselineY = 24;
   const height = 94;
   let ticks = '';
   let labels = '';
@@ -27,9 +29,13 @@ function renderFallbackSVG(userConfig = {}) {
     const kind = mm % 10 === 0 ? 'cm' : mm % 5 === 0 ? 'mm5' : 'mm';
     const h = kind === 'cm' ? 30 : kind === 'mm5' ? 18 : 10;
     const w = kind === 'cm' ? 2.2 : kind === 'mm5' ? 1.7 : 1.15;
-    ticks += `<line x1="${x}" y1="${baselineY}" x2="${x}" y2="${baselineY - h}" stroke="#172033" stroke-width="${w}" />`;
+
+    // 目盛はすべて横線の「下側」へ。
+    ticks += `<line x1="${x}" y1="${baselineY}" x2="${x}" y2="${baselineY + h}" stroke="#172033" stroke-width="${w}" />`;
+
+    // 数字は基準線の上。これで「定規」の読み方が自然になる。
     if (mm % 10 === 0) {
-      labels += `<text x="${x}" y="30" font-size="14" font-weight="700" fill="#172033" text-anchor="middle">${mm / 10}</text>`;
+      labels += `<text x="${x}" y="16" font-size="14" font-weight="700" fill="#172033" text-anchor="middle">${mm / 10}</text>`;
     }
   }
 
