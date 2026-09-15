@@ -18,7 +18,7 @@ function renderFallbackSVG(userConfig = {}) {
   const config = { ...RulerConfig, ...userConfig };
   const width = mmToPx(config.maxMM, config) + 4;
 
-  // 数直線ではなく「ものさし」に見えるよう、基準線の下に目盛を出す。
+  // 本物のものさしに近い配置：基準線→目盛→数字をすべて下側へ。
   const baselineY = 24;
   const height = 94;
   let ticks = '';
@@ -30,16 +30,16 @@ function renderFallbackSVG(userConfig = {}) {
     const h = kind === 'cm' ? 30 : kind === 'mm5' ? 18 : 10;
     const w = kind === 'cm' ? 2.2 : kind === 'mm5' ? 1.7 : 1.15;
 
-    // 目盛はすべて横線の「下側」へ。
+    // 目盛は基準線の下側。
     ticks += `<line x1="${x}" y1="${baselineY}" x2="${x}" y2="${baselineY + h}" stroke="#172033" stroke-width="${w}" />`;
 
-    // 数字は基準線の上。これで「定規」の読み方が自然になる。
+    // 数字も目盛の下側。1cmごとの数字を読みやすく配置する。
     if (mm % 10 === 0) {
-      labels += `<text x="${x}" y="16" font-size="14" font-weight="700" fill="#172033" text-anchor="middle">${mm / 10}</text>`;
+      labels += `<text x="${x}" y="76" font-size="14" font-weight="700" fill="#172033" text-anchor="middle">${mm / 10}</text>`;
     }
   }
 
-  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="1mm目盛の定規"><rect width="${width}" height="${height}" fill="#fff"/>${labels}<line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="#172033" stroke-width="2"/>${ticks}</svg>`;
+  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="1mm目盛の定規"><rect width="${width}" height="${height}" fill="#fff"/><line x1="0" y1="${baselineY}" x2="${width}" y2="${baselineY}" stroke="#172033" stroke-width="2"/>${ticks}${labels}</svg>`;
 }
 
 export function renderRulerSVG(userConfig = {}) {
