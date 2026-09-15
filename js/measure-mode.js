@@ -112,16 +112,22 @@ function addEndpoint(stage, mm, rulerConfig, kind) {
   stage.appendChild(line);
 }
 
-let targetSeed = 0;
+let lastTargetIndex = -1;
 function addTarget(stage, mm, rulerConfig) {
   const wrap = document.createElement('div');
   wrap.className = 'target';
   wrap.style.left = `${mmToPx(mm, rulerConfig)}px`;
 
+  let index = Math.floor(Math.random() * ASSETS.targets.length);
+  if (ASSETS.targets.length > 1 && index === lastTargetIndex) {
+    index = (index + 1 + Math.floor(Math.random() * (ASSETS.targets.length - 1))) % ASSETS.targets.length;
+  }
+  lastTargetIndex = index;
+
   const img = document.createElement('img');
-  img.src = ASSETS.targets[targetSeed % ASSETS.targets.length];
+  img.src = ASSETS.targets[index];
   img.alt = 'ナビアン';
-  withFallback(img, targetSeed++);
+  withFallback(img, index);
   wrap.appendChild(img);
   stage.appendChild(wrap);
 }
