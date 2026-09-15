@@ -1,0 +1,20 @@
+/* 定規の0cmが問題枠の端に張り付かないよう、左に学習用の余白を確保 */
+.ruler-board {
+  box-sizing: border-box;
+  padding-left: 40px;
+}
+
+.stage,
+.ruler {
+  left: 40px;
+  width: calc(100% - 40px);
+}
+
+.reference-ruler-wrap {
+  background: #fff;
+}
+
+.reference-ruler {
+  display: block;
+  max-width: none;
+}
