@@ -1,0 +1,45 @@
+/* 定規表示の最終調整。既存CSSを壊さず上書きする。 */
+
+/* 0mmの位置を問題枠の端から少し離す */
+.ruler-board {
+  min-width: calc(100% + 40px) !important;
+}
+
+.stage,
+.ruler {
+  left: 40px !important;
+  width: calc(100% - 40px) !important;
+}
+
+/* 定規を切り取らない。アプリ内SVGをそのまま見せる。 */
+.reference-ruler-wrap {
+  height: 96px !important;
+  overflow: visible !important;
+  background: #fff;
+  position: relative;
+}
+
+.reference-ruler {
+  left: 0 !important;
+  top: 0 !important;
+  max-width: none !important;
+  display: block !important;
+  width: auto;
+  height: 94px !important;
+}
+
+.ruler svg.reference-ruler {
+  overflow: visible;
+}
+
+/* 小さな画面でも0mm側の余白を確保 */
+@media (max-width: 620px) {
+  .ruler-board {
+    min-width: calc(100% + 32px) !important;
+  }
+  .stage,
+  .ruler {
+    left: 32px !important;
+    width: calc(100% - 32px) !important;
+  }
+}
