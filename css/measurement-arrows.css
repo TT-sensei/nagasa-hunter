@@ -14,20 +14,11 @@
 .endpoint.start::after { color: #172033; }
 .endpoint.end::after { color: #15803d; }
 
-/* 線の両端にも小さな向きを付け、「ここからここまで」を捉えやすくする */
+/* 横方向の矢印は使わず、定規への下向き矢印に統一 */
 .measure-segment::before,
 .measure-segment::after {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #0f766e;
-  font-size: 20px;
-  line-height: 1;
-  font-weight: 950;
-  pointer-events: none;
+  content: none;
 }
-.measure-segment::before { content: '◀'; left: -10px; }
-.measure-segment::after { content: '▶'; right: -10px; }
 
 @media (max-width: 620px) {
   .endpoint::after { font-size: 28px; }
