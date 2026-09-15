@@ -52,8 +52,8 @@ export function startMeasureMode(root, { mode = 'cm', level = 1 } = {}) {
     statusEl.textContent = levelNo === 1 ? '0からはかる' : `とちゅうから：${formatPosition(current.startMM)}`;
 
     showLengthMarker(stage, current, rulerConfig, correct);
-
     form.querySelector('button').disabled = true;
+
     setTimeout(() => {
       form.querySelector('button').disabled = false;
       current = spawnProblem(stage, modeInfo, levelNo, rulerConfig);
@@ -156,9 +156,12 @@ function readAnswer(root, modeInfo) {
     return cm * 10 + mm;
   }
 
-  const value = Number(root.querySelector('#guessInput').value);
+  const raw = root.querySelector('#guessInput').value;
+  if (raw === '') return null;
+  const value = Number(raw);
   if (!Number.isFinite(value) || value < 0) return null;
   if (modeInfo.key === 'cm' && !Number.isInteger(value)) return null;
+  if (modeInfo.key === 'decimal' && !Number.isInteger(Math.round(value * 10)) ) return null;
   return Math.round(value * 10);
 }
 
@@ -206,7 +209,7 @@ function template(modeInfo, levelNo) {
     <form id="guessForm" class="guess-form">
       <span>長さは</span>
       <span id="decimalAnswer">
-        <input id="guessInput" type="number" min="0" inputmode="decimal" required aria-label="長さ">
+        <input id="guessInput" type="number" min="0" inputmode="decimal" aria-label="長さ">
         <span>cm</span>
       </span>
       <span id="splitAnswer" hidden>
