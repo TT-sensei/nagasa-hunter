@@ -1,0 +1,70 @@
+/* ナビキャラ・ファンタジー背景を使った世界観レイヤー */
+
+:root {
+  --fantasy-riverbank: url('https://raw.githubusercontent.com/TT-sensei/navi-character-/main/assets/fantasy/backgrounds/riverbank.png');
+}
+
+/* スタート画面：河原の世界に入る入口 */
+.hunter-home {
+  position: relative;
+  isolation: isolate;
+}
+
+.hunter-home::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image: var(--fantasy-riverbank);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hunter-home::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgb(255 255 255 / 58%);
+  pointer-events: none;
+}
+
+/* 問題画面：河原をフィールドにする */
+.game-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.game-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-image: var(--fantasy-riverbank);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.game-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: rgb(255 255 255 / 48%);
+  pointer-events: none;
+}
+
+/* 学習UIは背景の上でも読みやすく */
+.hunter-home > *,
+.game-page > * {
+  position: relative;
+}
+
+@media (max-width: 620px) {
+  .hunter-home::before,
+  .game-page::before {
+    background-position: center center;
+  }
+}
