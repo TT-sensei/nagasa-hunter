@@ -70,12 +70,15 @@ export function startMeasureMode(root, { mode = 'cm', level = 1 } = {}) {
 }
 
 function getRulerConfig(modeInfo) {
+  const isDecimal = modeInfo.key === 'decimal';
   return {
     ...RulerConfig,
     maxMM: CONFIG.rulerRangeMM,
-    pxPerMM: modeInfo.key === 'decimal' ? 6 : 5,
+    // SVG Silhの定規は20cmを1280pxで描いた素材なので、1mm=6.4pxに合わせる。
+    pxPerMM: isDecimal ? 6.4 : 6,
+    useReferenceRuler: isDecimal,
     tickStepMM: modeInfo.key === 'cm' ? 10 : (modeInfo.key === 'mm' ? 5 : 1),
-    showOneMMTicks: modeInfo.key === 'decimal',
+    showOneMMTicks: isDecimal,
     showFiveMMTicks: modeInfo.key !== 'cm',
     labelIntervalMM: 50,
     labelFontSize: 16,
