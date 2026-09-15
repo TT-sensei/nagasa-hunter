@@ -161,7 +161,7 @@ function readAnswer(root, modeInfo) {
   const value = Number(raw);
   if (!Number.isFinite(value) || value < 0) return null;
   if (modeInfo.key === 'cm' && !Number.isInteger(value)) return null;
-  if (modeInfo.key === 'decimal' && !Number.isInteger(Math.round(value * 10)) ) return null;
+  if (modeInfo.key === 'decimal' && Math.abs(value * 10 - Math.round(value * 10)) > 1e-9) return null;
   return Math.round(value * 10);
 }
 
