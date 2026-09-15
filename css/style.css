@@ -79,6 +79,8 @@ h1 { font-size: 34px; letter-spacing: .02em; margin: 8px 0 4px; }
 .stage { position:relative; height:132px; min-width:100%; background:linear-gradient(180deg,rgba(224,242,254,.30),rgba(240,253,250,.30)); border-radius:11px 11px 0 0; box-shadow:inset 0 -1px 0 rgba(148,163,184,.32); }
 .ruler { overflow:visible; }
 .ruler svg { display:block; }
+.reference-ruler-wrap { position:relative; width:100%; height:118px; overflow:hidden; background:#fff; }
+.reference-ruler { position:absolute; left:0; top:-148px; display:block; max-width:none; user-select:none; pointer-events:none; }
 .scroll-hint { text-align:right; color:#94a3b8; font-size:10px; margin-top:5px; padding-right:2px; }
 
 .measure-segment { position:absolute; top:73px; height:9px; min-width:8px; transform:translateY(-50%); background:#0ea5a4; border-radius:999px; box-shadow:0 2px 0 rgba(15,118,110,.22); }
