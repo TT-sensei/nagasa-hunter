@@ -5,14 +5,15 @@ import { getStats } from './storage.js';
 const app = document.getElementById('app');
 
 const MODES = [
-  { key: 'cm', title: 'cmまで', description: '1cmごとの目盛を読む', example: '□ cm', color: 'primary' },
-  { key: 'mm', title: 'cmとmmまで', description: '1mmの目盛まで読んで表す', example: '□ cm □ mm', color: 'accent' },
-  { key: 'decimal', title: '小数で表す', description: '1mmを0.1cmとして表す', example: '□.□ cm', color: 'success' }
+  { key: 'cm', title: 'cmまで', description: '1cmごとの目盛を読む', example: '□ cm' },
+  { key: 'mm', title: 'cmとmmまで', description: '1mmの目盛まで読んで表す', example: '□ cm □ mm' },
+  { key: 'decimal', title: '小数で表す', description: '1mmを0.1cmとして表す', example: '□.□ cm' }
 ];
 
 function showTitle() {
   const stats = getStats();
   const savedMode = localStorage.getItem('nagasa-hunter-mode') || 'cm';
+  const savedLevel = Number(localStorage.getItem('nagasa-hunter-level')) === 2 ? 2 : 1;
   const activeMode = MODES.some((mode) => mode.key === savedMode) ? savedMode : 'cm';
 
   app.innerHTML = `
@@ -21,11 +22,11 @@ function showTitle() {
         <div>
           <div class="home-kicker">MONOSASHI HUNTER</div>
           <h1 class="edu-page-title">長さを読もう</h1>
-          <p class="edu-page-lead">ものさしの目盛を見て、長さを答えます。</p>
+          <p class="edu-page-lead">ものさしの目盛を見て、はじまりからおわりまでの長さを読もう。</p>
         </div>
         <div class="edu-stat home-record" aria-label="これまでの記録">
           <div class="edu-stat-label">最高れんぞく正解</div>
-          <div class="edu-stat-value">${stats.hunt.bestStreak}<span>回</span></div>
+          <div class="edu-stat-value">${stats.bestStreak}<span>回</span></div>
         </div>
       </header>
 
@@ -33,7 +34,7 @@ function showTitle() {
         <div class="mode-picker-head">
           <div>
             <h2 id="modeTitle" class="edu-card-title">どこまで読めるかな？</h2>
-            <p class="edu-card-meta">今の学習に合うものを選びます。</p>
+            <p class="edu-card-meta">学習する読み方を選びます。</p>
           </div>
           <span class="edu-badge edu-badge-neutral">れんしゅう</span>
         </div>
@@ -46,17 +47,35 @@ function showTitle() {
             </button>
           `).join('')}
         </div>
+
+        <div class="level-picker">
+          <div class="level-picker-head">
+            <h3>はじまりの位置</h3>
+            <span>どちらから読めるかな？</span>
+          </div>
+          <div class="level-grid">
+            <button type="button" class="level-card ${savedLevel === 1 ? 'is-selected' : ''}" data-level="1">
+              <strong>0から</strong><span>ものさしの0から始まる</span>
+            </button>
+            <button type="button" class="level-card ${savedLevel === 2 ? 'is-selected' : ''}" data-level="2">
+              <strong>とちゅうから</strong><span>0ではないところから始まる</span>
+            </button>
+          </div>
+        </div>
+
         <button type="button" id="startBtn" class="edu-btn edu-btn-primary edu-btn-block start-action">このコースをはじめる</button>
       </section>
 
       <section class="home-tip edu-note" aria-label="読み方のポイント">
         <div class="edu-note-title">読むポイント</div>
-        <p>はじまりとおわりの位置を見て、その間の長さを読みます。0から始まらない問題も出ます。</p>
+        <p>はじまりの位置を見つけ、おわりの位置を読む。とちゅうから始まるときは、2つの位置の差を考えます。</p>
       </section>
     </div>
   `;
 
   let selectedMode = activeMode;
+  let selectedLevel = savedLevel;
+
   app.querySelectorAll('.mode-card').forEach((button) => {
     button.addEventListener('click', () => {
       app.querySelectorAll('.mode-card').forEach((item) => item.classList.remove('is-selected'));
@@ -66,16 +85,25 @@ function showTitle() {
     });
   });
 
-  app.querySelector('#startBtn').addEventListener('click', () => startGame(selectedMode));
+  app.querySelectorAll('.level-card').forEach((button) => {
+    button.addEventListener('click', () => {
+      app.querySelectorAll('.level-card').forEach((item) => item.classList.remove('is-selected'));
+      button.classList.add('is-selected');
+      selectedLevel = Number(button.dataset.level);
+      localStorage.setItem('nagasa-hunter-level', String(selectedLevel));
+    });
+  });
+
+  app.querySelector('#startBtn').addEventListener('click', () => startGame(selectedMode, selectedLevel));
 }
 
-function startGame(mode) {
+function startGame(mode, level) {
   app.innerHTML = `
     <div class="edu-container edu-main game-page">
       <div id="gameRoot"></div>
     </div>
   `;
-  startMeasureMode(app.querySelector('#gameRoot'), { mode });
+  startMeasureMode(app.querySelector('#gameRoot'), { mode, level });
 }
 
 showTitle();
