@@ -3,6 +3,7 @@ import { StorageManager } from 'https://tt-sensei.github.io/edu-components/index
 
 const storage = new StorageManager('nagasa-hunter');
 const KEY = 'stats-v2';
+const PREFS_KEY = 'preferences-v1';
 const LEGACY_KEY = 'monosashi-hunter-stats-v1';
 
 function defaultStats() {
@@ -13,7 +14,6 @@ function loadStats() {
   const saved = storage.load(KEY, null);
   if (saved && typeof saved === 'object') return normalizeStats(saved);
 
-  // 旧バージョンの記録があれば一度だけ引き継ぐ。
   try {
     const oldRaw = localStorage.getItem(LEGACY_KEY);
     const old = oldRaw ? JSON.parse(oldRaw) : null;
@@ -54,4 +54,16 @@ export function recordHuntResult(isCorrect) {
 
 export function getStats() {
   return loadStats();
+}
+
+export function getPreferences() {
+  const saved = storage.load(PREFS_KEY, {});
+  return saved && typeof saved === 'object' ? saved : {};
+}
+
+export function savePreferences(patch = {}) {
+  const current = getPreferences();
+  const next = { ...current, ...patch };
+  storage.save(PREFS_KEY, next);
+  return next;
 }
