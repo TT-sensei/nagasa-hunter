@@ -19,23 +19,25 @@ function showTitle() {
     <div class="title-screen">
       <div class="navi-wrap" id="naviWrap"></div>
       <h1>長さハンター</h1>
-      <p class="lead">ものさしを使わず、目盛を読んで長さをハントしよう！</p>
+      <p class="lead">目盛を読んで、ナビアンとの長さ勝負！</p>
 
       <div class="select-panel">
-        <div class="select-title">モード</div>
+        <div class="select-title">モードを選ぶ</div>
         <div class="mode-buttons">
           ${MODES.map((mode, i) => `
-            <button class="mode-btn ${i === 0 ? 'selected' : ''}" data-mode="${mode.key}">
+            <button type="button" class="mode-btn ${i === 0 ? 'selected' : ''}" data-mode="${mode.key}">
               <span>${mode.title}</span><small>${mode.description}</small>
             </button>
           `).join('')}
         </div>
 
-        <div class="select-title">レベル</div>
+        <div class="select-title">レベルを選ぶ</div>
         <div class="level-buttons">
-          <button class="level-btn selected" data-level="1">レベル1 <small>0から</small></button>
-          <button class="level-btn" data-level="2">レベル2 <small>とちゅうから</small></button>
+          <button type="button" class="level-btn selected" data-level="1">レベル1<small>0から</small></button>
+          <button type="button" class="level-btn" data-level="2">レベル2<small>とちゅうから</small></button>
         </div>
+
+        <button type="button" id="startBtn" class="start-btn">はじめる！</button>
       </div>
 
       <p class="stats">れんぞく正解さいこう: ${stats.hunt.bestStreak}回</p>
@@ -67,19 +69,7 @@ function showTitle() {
     });
   });
 
-  app.querySelectorAll('.mode-btn').forEach((btn) => {
-    btn.addEventListener('dblclick', () => startGame(selectedMode, selectedLevel));
-  });
-
-  const startButtons = app.querySelectorAll('.mode-btn');
-  startButtons.forEach((btn) => {
-    btn.addEventListener('contextmenu', (e) => e.preventDefault());
-  });
-
-  // モード選択ボタンを、そのままスタートボタンとしても使う。
-  app.querySelectorAll('.mode-btn').forEach((btn) => {
-    btn.addEventListener('click', () => startGame(selectedMode, selectedLevel));
-  });
+  app.querySelector('#startBtn').addEventListener('click', () => startGame(selectedMode, selectedLevel));
 }
 
 function startGame(mode, level) {
