@@ -1,48 +1,40 @@
-// storage.js
-// 記録はlocalStorageのみ。サーバー・アカウント・API不要(ANGLE HUNTERと同方針)。
+// 長さハンターの保存。edu-componentsのStorageManagerを使用。
+import { StorageManager } from 'https://tt-sensei.github.io/edu-components/index.js';
 
-import { CONFIG } from './config.js';
+const storage = new StorageManager('nagasa-hunter');
+const KEY = 'stats-v2';
 
 function defaultStats() {
-  return {
-    hunt: { attempts: 0, correct: 0, streak: 0, bestStreak: 0 },
-    challenge: { plays: 0, bestScore: 0 }
-  };
+  return { attempts: 0, correct: 0, streak: 0, bestStreak: 0 };
 }
 
 function loadStats() {
-  try {
-    const raw = localStorage.getItem(CONFIG.storageKey);
-    return raw ? JSON.parse(raw) : defaultStats();
-  } catch {
-    return defaultStats();
-  }
+  const saved = storage.load(KEY, defaultStats());
+  if (!saved || typeof saved !== 'object') return defaultStats();
+  return {
+    attempts: Number(saved.attempts) || 0,
+    correct: Number(saved.correct) || 0,
+    streak: Number(saved.streak) || 0,
+    bestStreak: Number(saved.bestStreak) || 0
+  };
 }
 
 function saveStats(stats) {
-  localStorage.setItem(CONFIG.storageKey, JSON.stringify(stats));
+  storage.save(KEY, stats);
 }
 
-export function recordHuntResult(correct) {
+export function recordHuntResult(isCorrect) {
   const stats = loadStats();
-  stats.hunt.attempts++;
-  if (correct) {
-    stats.hunt.correct++;
-    stats.hunt.streak++;
-    stats.hunt.bestStreak = Math.max(stats.hunt.bestStreak, stats.hunt.streak);
+  stats.attempts += 1;
+  if (isCorrect) {
+    stats.correct += 1;
+    stats.streak += 1;
+    stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
   } else {
-    stats.hunt.streak = 0;
+    stats.streak = 0;
   }
   saveStats(stats);
-  return stats.hunt;
-}
-
-export function recordChallengeResult(score) {
-  const stats = loadStats();
-  stats.challenge.plays++;
-  stats.challenge.bestScore = Math.max(stats.challenge.bestScore, score);
-  saveStats(stats);
-  return stats.challenge;
+  return stats;
 }
 
 export function getStats() {
