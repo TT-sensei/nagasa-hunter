@@ -3,24 +3,39 @@ import { StorageManager } from 'https://tt-sensei.github.io/edu-components/index
 
 const storage = new StorageManager('nagasa-hunter');
 const KEY = 'stats-v2';
+const LEGACY_KEY = 'monosashi-hunter-stats-v1';
 
 function defaultStats() {
   return { attempts: 0, correct: 0, streak: 0, bestStreak: 0 };
 }
 
 function loadStats() {
-  const saved = storage.load(KEY, defaultStats());
-  if (!saved || typeof saved !== 'object') return defaultStats();
+  const saved = storage.load(KEY, null);
+  if (saved && typeof saved === 'object') return normalizeStats(saved);
+
+  // 旧バージョンの記録があれば一度だけ引き継ぐ。
+  try {
+    const oldRaw = localStorage.getItem(LEGACY_KEY);
+    const old = oldRaw ? JSON.parse(oldRaw) : null;
+    if (old?.hunt) {
+      const migrated = normalizeStats(old.hunt);
+      storage.save(KEY, migrated);
+      return migrated;
+    }
+  } catch {
+    // 保存できなくても学習本体は継続する。
+  }
+
+  return defaultStats();
+}
+
+function normalizeStats(saved) {
   return {
     attempts: Number(saved.attempts) || 0,
     correct: Number(saved.correct) || 0,
     streak: Number(saved.streak) || 0,
     bestStreak: Number(saved.bestStreak) || 0
   };
-}
-
-function saveStats(stats) {
-  storage.save(KEY, stats);
 }
 
 export function recordHuntResult(isCorrect) {
@@ -33,7 +48,7 @@ export function recordHuntResult(isCorrect) {
   } else {
     stats.streak = 0;
   }
-  saveStats(stats);
+  storage.save(KEY, stats);
   return stats;
 }
 
