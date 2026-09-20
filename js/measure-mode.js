@@ -164,7 +164,7 @@ function spawnProblem(stage, modeInfo, startPositionNo, rulerConfig) {
   const maxLength = modeInfo.key === 'cm' ? 150 : 160;
   const lengthMM = randomStep(minLength, maxLength, lengthStep);
   let startMM = 0;
-  if (levelNo === 2) {
+  if (startPositionNo === 2) {
     const latestStart = Math.max(10, CONFIG.rulerRangeMM - lengthMM - 10);
     startMM = randomStep(10, latestStart, 1);
   }
@@ -176,7 +176,7 @@ function spawnProblem(stage, modeInfo, startPositionNo, rulerConfig) {
   stage.appendChild(segment);
   addEndpoint(stage, startMM, rulerConfig, 'start');
   addEndpoint(stage, endMM, rulerConfig, 'end');
-  addTarget(stage, endMM, rulerConfig);
+  addTarget(stage, endMM, rulerConfig, modeInfo);
   return { startMM, lengthMM, endMM };
 }
 
@@ -188,7 +188,7 @@ function addEndpoint(stage, mm, rulerConfig, kind) {
 }
 
 let lastTargetIndex = -1;
-function addTarget(stage, mm, rulerConfig) {
+function addTarget(stage, mm, rulerConfig, modeInfo) {
   const wrap = document.createElement('div');
   wrap.className = 'target';
   wrap.style.left = `${mmToPx(mm, rulerConfig)}px`;
