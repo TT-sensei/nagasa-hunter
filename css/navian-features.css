@@ -28,17 +28,33 @@
 @media (max-width:620px) { .navian-feature-grid { grid-template-columns:1fr; } .book-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; } .navian-card-img { min-height:110px; } .navian-card-img img { width:92px; height:92px; } .book-page { padding-top:10px; } }
 
 
-/* 10回ごとの図鑑報酬演出 */
-.navian-card.effect-badge-unlock {
-  position: relative;
-  z-index: 2;
-  animation: navian-milestone-glow 1.2s ease-out;
-}
-@keyframes navian-milestone-glow {
-  0% { transform: scale(1); filter: brightness(1); }
-  35% { transform: scale(1.035); filter: brightness(1.18); }
-  100% { transform: scale(1); filter: brightness(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .navian-card.effect-badge-unlock { animation: none; }
+
+/* 集めるほど豪華になる図鑑 */
+.book-page { position:relative; overflow:hidden; }
+.book-page::before,.book-page::after { content:""; position:absolute; pointer-events:none; border-radius:999px; opacity:0; }
+.book-page::before { width:220px; height:220px; top:70px; right:-90px; background:radial-gradient(circle,rgb(255 255 255 / 72%),rgb(191 219 254 / 0%) 70%); }
+.book-page::after { width:180px; height:180px; left:-80px; bottom:20px; background:radial-gradient(circle,rgb(255 255 255 / 58%),rgb(191 219 254 / 0%) 70%); }
+.book-tier-1 .navian-card.is-new,.book-tier-2 .navian-card.is-new { border-color:#bfdbfe; }
+.book-tier-1 .navian-card.is-new .navian-card-img { animation:navian-soft-shine 3.2s ease-in-out infinite; }
+.book-tier-2 .navian-card.is-new .navian-card-img { animation:navian-soft-shine 2.8s ease-in-out infinite; }
+.book-tier-2::before { opacity:.7; animation:navian-orb-float 5s ease-in-out infinite; }
+.book-tier-3 .navian-card.is-new { border-color:#a5b4fc; box-shadow:0 8px 24px rgb(99 102 241 / 13%); }
+.book-tier-3 .navian-card.is-new .navian-card-img { animation:navian-soft-shine 2.4s ease-in-out infinite; }
+.book-tier-3::before,.book-tier-3::after { opacity:.85; animation:navian-orb-float 5s ease-in-out infinite alternate; }
+.book-tier-4 .navian-card.is-new { border-color:#c4b5fd; box-shadow:0 9px 28px rgb(124 58 237 / 15%); }
+.book-tier-4 .navian-card.is-new .navian-card-img { animation:navian-soft-shine 2.1s ease-in-out infinite; }
+.book-tier-4::before,.book-tier-4::after { opacity:1; animation:navian-orb-float 4.5s ease-in-out infinite alternate; }
+.book-tier-5 .navian-card.is-new { border-color:#f0abfc; box-shadow:0 10px 32px rgb(168 85 247 / 18%); }
+.book-tier-5 .navian-card.is-new .navian-card-img { animation:navian-rainbow-shine 3.2s ease-in-out infinite; }
+.book-tier-5::before,.book-tier-5::after { opacity:1; animation:navian-orb-float 4s ease-in-out infinite alternate; }
+@keyframes navian-soft-shine { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.08)} }
+@keyframes navian-rainbow-shine { 0%,100%{filter:brightness(1) saturate(1)} 50%{filter:brightness(1.12) saturate(1.12)} }
+@keyframes navian-orb-float { 0%{transform:translate3d(-8px,0,0)} 100%{transform:translate3d(8px,12px,0)} }
+@media (prefers-reduced-motion:reduce) {
+  .book-page::before,.book-page::after,
+  .book-tier-1 .navian-card.is-new .navian-card-img,
+  .book-tier-2 .navian-card.is-new .navian-card-img,
+  .book-tier-3 .navian-card.is-new .navian-card-img,
+  .book-tier-4 .navian-card.is-new .navian-card-img,
+  .book-tier-5 .navian-card.is-new .navian-card-img { animation:none; }
 }
