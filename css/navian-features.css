@@ -58,3 +58,7 @@
   .book-tier-4 .navian-card.is-new .navian-card-img,
   .book-tier-5 .navian-card.is-new .navian-card-img { animation:none; }
 }
+
+
+/* edu-kitの表示ルールより優先して、タイムアップ画面は明示的にhiddenの間は表示しない */
+.challenge-result[hidden] { display: none !important; }
