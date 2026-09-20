@@ -5,9 +5,9 @@ import { ASSETS } from './assets.js';
 
 const app = document.getElementById('app');
 const MODES = [
-  { key: 'cm', title: 'cmまで', description: '1cmごとの目盛を読む', example: '□ cm' },
-  { key: 'mm', title: 'cmとmmまで', description: '1mmの目盛まで読んで表す', example: '□ cm □ mm' },
-  { key: 'decimal', title: '小数で表す', description: '1mmを0.1cmとして表す', example: '□.□ cm' }
+  { key: 'cm', level: 1, title: 'cmまで', description: '1cmごとの目盛を読む', example: '□ cm' },
+  { key: 'mm', level: 2, title: 'cmとmmまで', description: '1mmの目盛まで読んで表す', example: '□ cm □ mm' },
+  { key: 'decimal', level: 3, title: '小数で表す', description: '1mmを0.1cmとして表す', example: '□.□ cm' }
 ];
 const COLLECTION = ASSETS.collection;
 const NAV_BASE = 'https://raw.githubusercontent.com/TT-sensei/navi-character-/main/assets/web/fantasy/monsters/';
@@ -20,7 +20,7 @@ function showTitle() {
   app.innerHTML = `<div class="edu-container edu-main hunter-home">
     <header class="home-header"><div><div class="home-kicker">MONOSASHI HUNTER</div><h1 class="edu-page-title">長さを読もう</h1><p class="edu-page-lead">ものさしの目盛を見て、はじまりからおわりまでの長さを読もう。</p></div><div class="edu-stat home-record"><div class="edu-stat-label">最高れんぞく正解</div><div class="edu-stat-value">${stats.bestStreak}<span>回</span></div></div></header>
     <section class="mode-picker edu-card edu-card-pad" aria-labelledby="modeTitle"><div class="mode-picker-head"><div><h2 id="modeTitle" class="edu-card-title">どこまで読めるかな？</h2><p class="edu-card-meta">目盛の読み方を選びます。</p></div><span class="edu-badge edu-badge-neutral">れんしゅう</span></div>
-      <div class="mode-grid">${MODES.map((mode) => `<button type="button" class="mode-card ${mode.key === savedMode ? 'is-selected' : ''}" data-mode="${mode.key}"><span class="mode-card-title">${mode.title}</span><span class="mode-card-example">${mode.example}</span><span class="mode-card-note">${mode.description}</span></button>`).join('')}</div>
+      <div class="mode-grid">${MODES.map((mode) => `<button type="button" class="mode-card ${mode.key === savedMode ? 'is-selected' : ''}" data-mode="${mode.key}"><span class="mode-card-level">レベル${mode.level}</span><span class="mode-card-title">${mode.title}</span><span class="mode-card-example">${mode.example}</span><span class="mode-card-note">${mode.description}</span></button>`).join('')}</div>
       <div class="level-picker"><div class="level-picker-head"><h3>はじまりの位置</h3><span>どちらから読めるかな？</span></div><div class="level-grid"><button type="button" class="level-card ${savedStartPosition === 1 ? 'is-selected' : ''}" data-level="1"><strong>0から</strong><span>ものさしの0から始まる</span></button><button type="button" class="level-card ${savedStartPosition === 2 ? 'is-selected' : ''}" data-level="2"><strong>とちゅうから</strong><span>0ではないところから始まる</span></button></div></div>
       <button type="button" id="startBtn" class="edu-btn edu-btn-primary edu-btn-block start-action">れんしゅうをはじめる</button>
       <div class="navian-feature-grid"><button type="button" class="feature-card" id="timeBtn"><span class="feature-card-title">タイム制　60秒</span><span class="feature-card-note">60秒で何問正解できる？ 長さを読んでどんどん答えよう。</span></button><button type="button" class="feature-card" id="bookBtn"><span class="feature-card-title">ナビアン図鑑</span><span class="feature-card-note">出会ったナビアンを一覧で見よう。つかまえた数も記録。</span></button></div>
