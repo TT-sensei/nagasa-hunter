@@ -3,7 +3,7 @@
 import { RulerConfig, mountRuler, mmToPx } from './ruler.js';
 import { CONFIG } from './config.js';
 import { ASSETS, withFallback } from './assets.js';
-import { AnswerChecker } from 'https://tt-sensei.github.io/edu-components/index.js';
+import { playSound, toggleSound, updateSoundButton } from './sound.js';
 import { recordHuntResult, getStats } from './storage.js';
 
 const MODE = {
@@ -27,6 +27,7 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
   const resultEl = root.querySelector('#result');
   const progressEl = root.querySelector('#progressText');
   const timerEl = root.querySelector('#timer');
+  const soundBtn = root.querySelector('#soundBtn');
 
   const rulerConfig = getRulerConfig(modeInfo);
   mountRuler(rulerContainer, rulerConfig);
@@ -43,6 +44,9 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
   let challengeFinished = false;
   let deadline = null;
   updateProgress();
+  updateSoundButton(soundBtn);
+  soundBtn?.addEventListener('click', async () => { await toggleSound(); updateSoundButton(soundBtn); });
+  playSound('questionStart', 0.16);
 
   if (timed) {
     deadline = Date.now() + 60000;
@@ -53,6 +57,7 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
       timerEl.textContent = `${timeLeft}`;
       timerEl.classList.toggle('urgent', timeLeft <= 10 && timeLeft > 0);
       if (timeLeft <= 0) finishChallenge();
+      else if (timeLeft === 10) playSound('warning', 0.16);
     }, 200);
   }
 
@@ -68,6 +73,7 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
 
     locked = true;
     const correct = Math.abs(guessMM - current.lengthMM) <= 1;
+    playSound(correct ? 'correct' : 'softFail', correct ? 0.2 : 0.16);
     const stats = recordHuntResult(correct);
     streak = stats.streak;
     solved += 1;
@@ -91,6 +97,7 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
       locked = false;
       form.querySelector('button').disabled = false;
       current = spawnProblem(stage, modeInfo, startPositionNo, rulerConfig);
+      playSound('questionStart', 0.12);
       resetInputs(root);
       resetResult(root);
       focusFirstInput(root, modeInfo);
@@ -118,6 +125,7 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
     clearInterval(timerId);
     timerId = null;
     timeLeft = 0;
+    playSound('timeUpSoft', 0.18);
     if (timerEl) {
       timerEl.textContent = '0';
       timerEl.classList.add('urgent');
