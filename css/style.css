@@ -142,7 +142,7 @@
 }
 .measure-segment::before,
 .measure-segment::after {
-  position: absolute; top: 50%; transform: translateY(-50%); color: #0f766e; font-size: 22px; line-height: 1; font-weight: 950;
+  position: absolute; top: 64%; transform: translateY(-50%); color: #0f766e; font-size: 22px; line-height: 1; font-weight: 950;
 }
 .measure-segment::before { content: '◀'; left: -11px; }
 .measure-segment::after { content: '▶'; right: -11px; }
@@ -151,7 +151,7 @@
   background: #172033; border-radius: 3px; z-index: 3;
 }
 .endpoint.start { top: 43px; }
-.endpoint.end { top: 40px; height: 86px; background: #15803d; }
+.endpoint.end { top: 40px; height: 112px; background: #15803d; }
 .endpoint::before {
   position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap;
   padding: 4px 8px; border-radius: 999px; font-size: 12px; line-height: 1; font-weight: 900;
