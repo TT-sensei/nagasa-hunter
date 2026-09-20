@@ -291,7 +291,7 @@ function template(modeInfo, levelNo, startPositionNo, timed) {
     <div class="hunter-shell">
       <header class="hunter-topbar">
         <div class="hunter-title-block"><div class="hunter-kicker">MONOSASHI HUNTER</div><div class="hunter-title-line"><h1>長さを読もう</h1><span class="edu-badge edu-badge-primary">${modeInfo.title}</span></div><p>${modeInfo.description}</p></div>
-        <div class="hunter-top-actions">${timed ? '<span id="timer" class="time-pill">60</span>' : ''}<span id="progressText" class="progress-text">ここまで 0問</span><span id="streak" class="streak-pill">れんぞく 0回</span><button id="homeBtn" type="button" class="edu-btn edu-btn-secondary">もどる</button></div>
+        <div class="hunter-top-actions">${timed ? '<span id="timer" class="time-pill">60</span>' : ''}<span id="progressText" class="progress-text">ここまで 0問</span><span id="streak" class="streak-pill">れんぞく 0回</span><button id="soundBtn" type="button" class="edu-btn edu-btn-secondary sound-toggle" aria-pressed="true">音あり</button><button id="homeBtn" type="button" class="edu-btn edu-btn-secondary">もどる</button></div>
       </header>
       <div class="level-strip" aria-label="レベル"><span class="level-strip-label">レベル</span><span class="level-chip ${levelNo === 1 ? 'is-current' : ''}"><strong>1</strong> cmまで</span><span class="level-chip ${levelNo === 2 ? 'is-current' : ''}"><strong>2</strong> cmとmmまで</span><span class="level-chip ${levelNo === 3 ? 'is-current' : ''}"><strong>3</strong> 小数で表す</span><span class="level-chip level-position"><strong>はじまり</strong> ${startPositionNo === 1 ? '0から' : 'とちゅうから'}</span></div>
       <div class="learning-layout">
