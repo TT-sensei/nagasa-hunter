@@ -33,8 +33,7 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
   setBoardWidth(board, rulerConfig);
   setupAnswerInputs(root, modeInfo);
 
-  const answerChecker = new AnswerChecker();
-  let current = spawnProblem(stage, modeInfo, startPositionNo, rulerConfig);
+    let current = spawnProblem(stage, modeInfo, startPositionNo, rulerConfig);
   let streak = getStats().streak;
   let solved = 0;
   let correctCount = 0;
@@ -68,7 +67,7 @@ export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed =
     }
 
     locked = true;
-    const correct = answerChecker.matches(guessMM, current.lengthMM, { numeric: true });
+    const correct = Math.abs(guessMM - current.lengthMM) <= 1;
     const stats = recordHuntResult(correct);
     streak = stats.streak;
     solved += 1;
