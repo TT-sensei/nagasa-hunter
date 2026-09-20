@@ -61,25 +61,8 @@ function showBook() {
   const gets = JSON.parse(localStorage.getItem('nagasa-hunter.navianGets.v1') || '{}');
   const all = COLLECTION;
   const gotCount = all.filter(({ file }) => Number(gets[file]) > 0).length;
-  app.innerHTML = `<div class="edu-container edu-main book-page"><div class="book-head"><div><div class="home-kicker">NAVIANS</div><h2>ナビアン図鑑</h2><p class="edu-page-lead">出会ったナビアンを集めよう。 ${gotCount} / ${all.length}</p></div><button id="bookBack" class="edu-btn edu-btn-secondary">タイトル</button></div><div class="book-grid">${all.map(({file,name,folder}) => { const count=Number(gets[file])||0; const locked=count===0; return `<article class="navian-card ${count?'is-new':''} ${locked?'is-locked':''}"><div class="navian-card-img">${locked ? `<div class="navian-locked" aria-label="まだ出会っていない"><img src="${NAV_BASE}${folder}/${file}" alt="" aria-hidden="true"><span>？？？</span></div>` : `<img src="${NAV_BASE}${folder}/${file}" alt="${name}">`}</div><div class="navian-card-body"><span class="navian-card-mark">ナビアン</span><div class="navian-card-name">${locked?'？？？':name}</div><div class="navian-card-count">${count ? `出会った ${count}回` : 'まだ出会っていない'}</div></div></article>`; }).join('')}</div></div>`;
+  const bookTier = Math.min(5, Math.floor(gotCount / 10));
+  app.innerHTML = `<div class="edu-container edu-main book-page book-tier-${bookTier}"><div class="book-head"><div><div class="home-kicker">NAVIANS</div><h2>ナビアン図鑑</h2><p class="edu-page-lead">出会ったナビアンを集めよう。 ${gotCount} / ${all.length}</p></div><button id="bookBack" class="edu-btn edu-btn-secondary">タイトル</button></div><div class="book-grid">${all.map(({file,name,folder}) => { const count=Number(gets[file])||0; const locked=count===0; return `<article class="navian-card ${count?'is-new':''} ${locked?'is-locked':''}"><div class="navian-card-img">${locked ? `<div class="navian-locked" aria-label="まだ出会っていない"><img src="${NAV_BASE}${folder}/${file}" alt="" aria-hidden="true"><span>？？？</span></div>` : `<img src="${NAV_BASE}${folder}/${file}" alt="${name}">`}</div><div class="navian-card-body"><span class="navian-card-mark">ナビアン</span><div class="navian-card-name">${locked?'？？？':name}</div><div class="navian-card-count">${count ? `出会った ${count}回` : 'まだ出会っていない'}</div></div></article>`; }).join('')}</div></div>`;
   app.querySelector('#bookBack').addEventListener('click', showTitle);
-  const milestoneKey = 'nagasa-hunter.navianMilestones.v1';
-  const milestones = JSON.parse(localStorage.getItem(milestoneKey) || '{}');
-  let changed = false;
-  app.querySelectorAll('.navian-card').forEach((card, index) => {
-    const item = all[index];
-    const count = Number(gets[item.file]) || 0;
-    const milestone = Math.floor(count / 10) * 10;
-    if (milestone < 10 || Number(milestones[item.file]) >= milestone) return;
-    milestones[item.file] = milestone;
-    changed = true;
-    card.classList.add('effect-badge-unlock');
-    const image = card.querySelector('.navian-card-img');
-    if (image && window.EduEffects?.play) window.EduEffects.play(image, 'effect-badge-unlock');
-    if (image && window.EduEffects?.confetti) window.EduEffects.confetti(image, 12);
-    playSound('badge', 0.22);
-    setTimeout(() => card.classList.remove('effect-badge-unlock'), 1400);
-  });
-  if (changed) localStorage.setItem(milestoneKey, JSON.stringify(milestones));
 }
 showTitle();
