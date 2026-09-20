@@ -12,10 +12,11 @@ const MODE = {
   decimal: { key: 'decimal', title: '小数で表す', description: '1mmを0.1cmとして表す', lengthStepMM: 1 }
 };
 
-export function startMeasureMode(root, { mode = 'cm', level = 1, timed = false } = {}) {
+export function startMeasureMode(root, { mode = 'cm', startPosition = 1, timed = false } = {}) {
   const modeInfo = MODE[mode] || MODE.cm;
-  const levelNo = Number(level) === 2 ? 2 : 1;
-  root.innerHTML = template(modeInfo, levelNo, timed);
+  const levelNo = mode === 'decimal' ? 3 : mode === 'mm' ? 2 : 1;
+  const startPositionNo = Number(startPosition) === 2 ? 2 : 1;
+  root.innerHTML = template(modeInfo, levelNo, startPositionNo, timed);
 
   const rulerContainer = root.querySelector('#ruler');
   const stage = root.querySelector('#stage');
@@ -33,7 +34,7 @@ export function startMeasureMode(root, { mode = 'cm', level = 1, timed = false }
   setupAnswerInputs(root, modeInfo);
 
   const answerChecker = new AnswerChecker();
-  let current = spawnProblem(stage, modeInfo, levelNo, rulerConfig);
+  let current = spawnProblem(stage, modeInfo, startPositionNo, rulerConfig);
   let streak = getStats().streak;
   let solved = 0;
   let correctCount = 0;
@@ -90,7 +91,7 @@ export function startMeasureMode(root, { mode = 'cm', level = 1, timed = false }
       if (challengeFinished) return;
       locked = false;
       form.querySelector('button').disabled = false;
-      current = spawnProblem(stage, modeInfo, levelNo, rulerConfig);
+      current = spawnProblem(stage, modeInfo, startPositionNo, rulerConfig);
       resetInputs(root);
       resetResult(root);
       focusFirstInput(root, modeInfo);
@@ -156,7 +157,7 @@ function getRulerConfig(modeInfo) {
 
 function setBoardWidth(board, rulerConfig) { board.style.width = `${mmToPx(rulerConfig.maxMM, rulerConfig) + 24}px`; }
 
-function spawnProblem(stage, modeInfo, levelNo, rulerConfig) {
+function spawnProblem(stage, modeInfo, startPositionNo, rulerConfig) {
   stage.innerHTML = '';
   const lengthStep = modeInfo.lengthStepMM;
   const minLength = modeInfo.key === 'cm' ? 20 : 10;
@@ -191,11 +192,12 @@ function addTarget(stage, mm, rulerConfig) {
   const wrap = document.createElement('div');
   wrap.className = 'target';
   wrap.style.left = `${mmToPx(mm, rulerConfig)}px`;
-  let index = Math.floor(Math.random() * ASSETS.targets.length);
-  if (ASSETS.targets.length > 1 && index === lastTargetIndex) index = (index + 1 + Math.floor(Math.random() * (ASSETS.targets.length - 1))) % ASSETS.targets.length;
+  const targetPool = modeInfo.key === 'decimal' ? ASSETS.targets.boss : modeInfo.key === 'mm' ? ASSETS.targets.evolved : ASSETS.targets.navian;
+  let index = Math.floor(Math.random() * targetPool.length);
+  if (targetPool.length > 1 && index === lastTargetIndex) index = (index + 1 + Math.floor(Math.random() * (targetPool.length - 1))) % targetPool.length;
   lastTargetIndex = index;
   const img = document.createElement('img');
-  img.src = ASSETS.targets[index];
+  img.src = targetPool[index];
   img.alt = 'ナビアン';
   withFallback(img, index);
   wrap.appendChild(img);
@@ -277,14 +279,14 @@ function randomStep(min, max, step) {
   const count = Math.floor((last - first) / step) + 1;
   return first + step * Math.floor(Math.random() * count);
 }
-function template(modeInfo, levelNo, timed) {
+function template(modeInfo, levelNo, startPositionNo, timed) {
   return `
     <div class="hunter-shell">
       <header class="hunter-topbar">
         <div class="hunter-title-block"><div class="hunter-kicker">MONOSASHI HUNTER</div><div class="hunter-title-line"><h1>長さを読もう</h1><span class="edu-badge edu-badge-primary">${modeInfo.title}</span></div><p>${modeInfo.description}</p></div>
         <div class="hunter-top-actions">${timed ? '<span id="timer" class="time-pill">60</span>' : ''}<span id="progressText" class="progress-text">ここまで 0問</span><span id="streak" class="streak-pill">れんぞく 0回</span><button id="homeBtn" type="button" class="edu-btn edu-btn-secondary">もどる</button></div>
       </header>
-      <div class="level-strip" aria-label="はかり方"><span class="level-strip-label">はかり方</span><span class="level-chip ${levelNo === 1 ? 'is-current' : ''}"><strong>1</strong> 0から読む</span><span class="level-chip ${levelNo === 2 ? 'is-current' : ''}"><strong>2</strong> とちゅうから読む</span></div>
+      <div class="level-strip" aria-label="レベル"><span class="level-strip-label">レベル</span><span class="level-chip ${levelNo === 1 ? 'is-current' : ''}"><strong>1</strong> cmまで</span><span class="level-chip ${levelNo === 2 ? 'is-current' : ''}"><strong>2</strong> cmとmmまで</span><span class="level-chip ${levelNo === 3 ? 'is-current' : ''}"><strong>3</strong> 小数で表す</span><span class="level-chip level-position"><strong>はじまり</strong> ${startPositionNo === 1 ? '0から' : 'とちゅうから'}</span></div>
       <div class="learning-layout">
         <section class="ruler-panel edu-card"><div class="panel-heading"><div><div class="panel-kicker">まず見る</div><h2>はじまりとおわりを見よう</h2></div><span class="edu-badge edu-badge-neutral">ものさし</span></div>
           <div class="reading-guide"><span class="guide-item"><i class="guide-dot guide-start"></i>はじまり</span><span class="guide-arrow">→</span><span class="guide-item"><i class="guide-dot guide-end"></i>おわり</span></div>
