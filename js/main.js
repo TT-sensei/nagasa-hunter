@@ -29,7 +29,7 @@ function showTitle() {
   app.querySelectorAll('.mode-card').forEach((button) => button.addEventListener('click', () => { app.querySelectorAll('.mode-card').forEach((item) => item.classList.remove('is-selected')); button.classList.add('is-selected'); selectedMode = button.dataset.mode; savePreferences({ mode: selectedMode }); }));
   app.querySelectorAll('.level-card').forEach((button) => button.addEventListener('click', () => { app.querySelectorAll('.level-card').forEach((item) => item.classList.remove('is-selected')); button.classList.add('is-selected'); selectedStartPosition = Number(button.dataset.level); savePreferences({ startPosition: selectedStartPosition }); }));
   app.querySelector('#startBtn').addEventListener('click', () => startGame(selectedMode, selectedStartPosition));
-  app.querySelector('#timeBtn').addEventListener('click', () => startGame(selectedMode, selectedLevel, { timed: true }));
+  app.querySelector('#timeBtn').addEventListener('click', () => startGame(selectedMode, selectedStartPosition, { timed: true }));
   app.querySelector('#bookBtn').addEventListener('click', showBook);
 }
 
