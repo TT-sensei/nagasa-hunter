@@ -2,6 +2,7 @@
 import { startMeasureMode } from './measure-mode.js';
 import { getStats, getPreferences, savePreferences } from './storage.js';
 import { ASSETS } from './assets.js';
+import { playSound, unlockSound } from './sound.js';
 
 const app = document.getElementById('app');
 const MODES = [
@@ -28,8 +29,8 @@ function showTitle() {
   let selectedMode = savedMode, selectedStartPosition = savedStartPosition;
   app.querySelectorAll('.mode-card').forEach((button) => button.addEventListener('click', () => { app.querySelectorAll('.mode-card').forEach((item) => item.classList.remove('is-selected')); button.classList.add('is-selected'); selectedMode = button.dataset.mode; savePreferences({ mode: selectedMode }); }));
   app.querySelectorAll('.level-card').forEach((button) => button.addEventListener('click', () => { app.querySelectorAll('.level-card').forEach((item) => item.classList.remove('is-selected')); button.classList.add('is-selected'); selectedStartPosition = Number(button.dataset.level); savePreferences({ startPosition: selectedStartPosition }); }));
-  app.querySelector('#startBtn').addEventListener('click', () => startGame(selectedMode, selectedStartPosition));
-  app.querySelector('#timeBtn').addEventListener('click', () => startGame(selectedMode, selectedStartPosition, { timed: true }));
+  app.querySelector('#startBtn').addEventListener('click', async () => { await unlockSound(); playSound('start', 0.16); startGame(selectedMode, selectedStartPosition); });
+  app.querySelector('#timeBtn').addEventListener('click', async () => { await unlockSound(); playSound('start', 0.16); startGame(selectedMode, selectedStartPosition, { timed: true }); });
   app.querySelector('#bookBtn').addEventListener('click', showBook);
 }
 
