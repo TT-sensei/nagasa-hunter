@@ -15,6 +15,8 @@ const MODE = {
 };
 
 const SNAP_MM = 2;      // この範囲に入ったら0が吸着する
+const SNAP_PX = 7;      // 上下はこの範囲（px）で吸着する
+const UNSNAP_PX = 12;
 const UNSNAP_MM = 4;    // ここまで離れたら吸着が外れたとみなす
 const COLLECTION_KEY = 'nagasa-hunter.navianGets.v1';
 
@@ -44,7 +46,7 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   const grip = document.createElement('div');
   grip.className = 'ruler-grip';
   grip.style.width = rulerPxWidth;
-  grip.textContent = '◀ ものさしを うごかす ▶';
+  grip.textContent = 'ものさしを うごかす（たて・よこ）';
   rulerContainer.appendChild(grip);
   board.style.width = `${mmToPx(rulerConfig.maxMM, rulerConfig) + mmToPx(64, rulerConfig) + 24}px`;
   board.style.minHeight = '252px';
@@ -56,7 +58,10 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
 
   let current = null;
   let shiftMM = 0;
-  let aligned = false;
+  let dyPx = 0;
+  let hSnap = false;
+  let vSnap = false;
+  let wasAligned = false;
   let locked = false;
   let streak = getStats().streak;
   let solved = 0;
@@ -67,17 +72,23 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   playSound('questionStart', 0.16);
 
   function applyShift() {
-    rulerContainer.style.transform = `translateX(${mmToPx(shiftMM, rulerConfig)}px)`;
+    rulerContainer.style.transform = `translate(${mmToPx(shiftMM, rulerConfig)}px, ${dyPx}px)`;
   }
 
-  function setAligned(next) {
-    if (aligned === next) return;
-    aligned = next;
-    if (aligned) playSound('questionStart', 0.12);
-    alignEl.textContent = aligned ? '0が 合った！' : '0が 合っていない';
+  function updateAlignUI() {
+    const aligned = hSnap && vSnap;
+    if (aligned && !wasAligned) playSound('questionStart', 0.12);
+    wasAligned = aligned;
+    alignEl.textContent = aligned
+      ? '0が 合った！'
+      : hSnap
+        ? 'あとは 上下を合わせよう'
+        : vSnap
+          ? 'あとは 0を合わせよう'
+          : '0が 合っていない';
     alignEl.classList.toggle('is-ok', aligned);
     rulerContainer.classList.toggle('is-aligned', aligned);
-    zeroLine.classList.toggle('show', aligned);
+    zeroLine.classList.toggle('show', hSnap);
     stage.querySelector('.endpoint.start')?.classList.toggle('is-hit', aligned);
   }
 
@@ -86,12 +97,25 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
     const off = Math.abs(shiftMM - current.startMM);
     if (off <= SNAP_MM) {
       shiftMM = current.startMM;
-      setAligned(true);
+      hSnap = true;
     } else if (off > UNSNAP_MM) {
-      setAligned(false);
+      hSnap = false;
     }
     applyShift();
+    updateAlignUI();
     if (fromDrag) nudgeScroll();
+  }
+
+  function setDy(valuePx) {
+    dyPx = Math.max(-80, Math.min(95, valuePx));
+    if (Math.abs(dyPx) <= SNAP_PX) {
+      dyPx = 0;
+      vSnap = true;
+    } else if (Math.abs(dyPx) > UNSNAP_PX) {
+      vSnap = false;
+    }
+    applyShift();
+    updateAlignUI();
   }
 
   function nudgeScroll() {
@@ -104,7 +128,7 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   let dragState = null;
   rulerContainer.addEventListener('pointerdown', (event) => {
     if (locked) return;
-    dragState = { pointerId: event.pointerId, startX: event.clientX, startShift: shiftMM, clientX: event.clientX };
+    dragState = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startShift: shiftMM, startDy: dyPx, clientX: event.clientX };
     rulerContainer.setPointerCapture(event.pointerId);
     rulerContainer.classList.add('is-dragging');
     event.preventDefault();
@@ -114,12 +138,14 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
     dragState.clientX = event.clientX;
     const dxMM = (event.clientX - dragState.startX) / rulerConfig.pxPerMM;
     setShift(dragState.startShift + dxMM, true);
+    setDy(dragState.startDy + (event.clientY - dragState.startY));
   });
   const endDrag = (event) => {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     dragState = null;
     rulerContainer.classList.remove('is-dragging');
     setShift(shiftMM);
+    setDy(dyPx);
   };
   rulerContainer.addEventListener('pointerup', endDrag);
   rulerContainer.addEventListener('pointercancel', endDrag);
@@ -127,10 +153,14 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   function spawn() {
     current = spawnProblem(stage, modeInfo, rulerConfig);
     zeroLine.style.left = `${40 + mmToPx(current.startMM, rulerConfig)}px`;
-    setAligned(false);
+    hSnap = false;
+    vSnap = false;
+    wasAligned = false;
     shiftMM = pickInitialShift(current.startMM);
     if (Math.abs(shiftMM - current.startMM) <= SNAP_MM) shiftMM = current.startMM + 30;
+    dyPx = pickInitialDy();
     applyShift();
+    updateAlignUI();
     scrollEl.scrollLeft = Math.max(0, mmToPx(current.startMM, rulerConfig) - 150);
     progressEl.textContent = `ここまで ${solved}問`;
   }
@@ -164,10 +194,10 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
         ? `${current.targetName}をつかまえた！ 0を合わせて、きちんと読めました。`
         : 'ナビアンをつかまえた！ 0を合わせて、きちんと読めました。';
       feedback.className = 'feedback-message is-correct';
-    } else if (!aligned) {
+    } else if (!(hSnap && vSnap)) {
       resultEl.textContent = 'おしい！';
       resultEl.className = 'answer-result is-wrong';
-      feedback.textContent = 'ものさしの当て方を確認しよう。0の目盛が「ここから」に合っているかな？ 合わせてから、おわりの目盛を読もう。';
+      feedback.textContent = 'ものさしの当て方を確認しよう。0の目盛が「ここから」に合っているかな？ 上下の位置も、線のすぐ下に合わせよう。';
       feedback.className = 'feedback-message is-wrong';
     } else {
       resultEl.textContent = 'おしい！';
@@ -210,7 +240,6 @@ function getRulerConfig(modeInfo) {
   };
 }
 
-let lastTargetIndex = -1;
 function spawnProblem(stage, modeInfo, rulerConfig) {
   stage.innerHTML = '';
   const minLength = modeInfo.key === 'cm' ? 30 : 20;
@@ -228,10 +257,8 @@ function spawnProblem(stage, modeInfo, rulerConfig) {
   addEndpoint(stage, startMM, rulerConfig, 'start');
   addEndpoint(stage, endMM, rulerConfig, 'end');
 
-  const targetPool = modeInfo.key === 'decimal' ? ASSETS.targets.boss : modeInfo.key === 'mm' ? ASSETS.targets.evolved : ASSETS.targets.navian;
-  let index = Math.floor(Math.random() * targetPool.length);
-  if (targetPool.length > 1 && index === lastTargetIndex) index = (index + 1 + Math.floor(Math.random() * (targetPool.length - 1))) % targetPool.length;
-  lastTargetIndex = index;
+  const targetPool = ASSETS.catchPool;
+  const index = Math.floor(Math.random() * targetPool.length);
   const wrap = document.createElement('div');
   wrap.className = 'target';
   wrap.style.left = `${mmToPx(endMM, rulerConfig)}px`;
@@ -252,6 +279,11 @@ function addEndpoint(stage, mm, rulerConfig, kind) {
   line.className = `endpoint ${kind}`;
   line.style.left = `${mmToPx(mm, rulerConfig)}px`;
   stage.appendChild(line);
+}
+
+function pickInitialDy() {
+  const options = [-36, -24, 30, 52];
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 function pickInitialShift(startMM) {
@@ -360,7 +392,7 @@ function template(modeInfo, levelNo) {
         <section class="ruler-panel edu-card"><div class="panel-heading"><div><div class="panel-kicker">まず当てる</div><h2>ものさしを当てよう</h2></div><span id="alignStatus" class="align-pill">0が 合っていない</span></div>
           <div class="reading-guide"><span class="guide-item"><i class="guide-dot guide-start"></i>ものさしを動かす</span><span class="guide-arrow">→</span><span class="guide-item"><i class="guide-dot guide-mid"></i>0を合わせる</span><span class="guide-arrow">→</span><span class="guide-item"><i class="guide-dot guide-end"></i>おわりを読む</span></div>
           <div class="ruler-scroll" id="rulerScroll"><div class="ruler-board" id="rulerBoard"><div class="stage" id="stage"></div><div id="ruler" class="ruler drag-ruler"></div></div></div>
-          <p class="ruler-help">ものさしの下の緑の部分を指で動かして、0の目盛を「ここから」に合わせよう。</p>
+          <p class="ruler-help">ものさしの下の緑の部分を指で動かして、0の目盛を「ここから」に合わせよう。たてにも横にも動かせるよ。</p>
         </section>
         <aside class="answer-panel edu-card edu-card-pad" aria-label="答える"><div class="answer-heading"><div class="panel-kicker">次に答える</div><h2>長さは？</h2></div>
           <div id="result" class="answer-result" aria-live="polite"></div>
