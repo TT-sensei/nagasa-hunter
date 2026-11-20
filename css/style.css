@@ -302,3 +302,7 @@
   .escape-card { flex-wrap: wrap; }
   .escape-start { width: 100%; }
 }
+
+/* ホーム再構成：レベル選択を共通設定として上部へ */
+.escape-card { margin-top: 14px; }
+.level-picker-first { margin-top: 2px; padding-top: 0; border-top: none; }
