@@ -62,3 +62,12 @@
 
 /* edu-kitの表示ルールより優先して、タイムアップ画面は明示的にhiddenの間は表示しない */
 .challenge-result[hidden] { display: none !important; }
+
+/* 未発見のナビアンはシルエット表示（形だけ見せて、色は見せない） */
+.navian-locked { position: relative; display: grid; place-items: center; }
+.navian-locked img { filter: brightness(0); opacity: .8; }
+.navian-locked span {
+  position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  padding: 2px 9px; border-radius: 999px; background: rgb(23 32 51 / 80%);
+  color: #fff; font-size: .78rem; font-weight: 800; letter-spacing: .12em; white-space: nowrap;
+}
