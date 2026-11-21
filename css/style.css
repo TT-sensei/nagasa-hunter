@@ -339,3 +339,6 @@
   .sub-grid { grid-template-columns: 1fr; }
   .main-play-head { flex-direction: column; align-items: flex-start; }
 }
+
+/* 斜めの線では、はじまり・おわりの印を線に対して直角に保つ（ラベルは水平のまま） */
+.endpoint.slant::before { transform: translateX(-50%) rotate(var(--erot, 0deg)); }

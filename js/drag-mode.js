@@ -394,8 +394,8 @@ function spawnProblem(stage, modeInfo, rulerConfig, slant = false) {
     segment.style.transformOrigin = '0 50%';
   }
   stage.appendChild(segment);
-  addEndpoint(stage, startMM, rulerConfig, 'start', diagonal ? startY - 41 : null);
-  if (diagonal) addEndpointAt(stage, endX, endY - 40, 'end');
+  addEndpoint(stage, startMM, rulerConfig, 'start', diagonal ? startY - 24 : null, diagonal ? angleDeg : null);
+  if (diagonal) addEndpointAt(stage, endX, endY - 24, 'end', angleDeg);
   else addEndpoint(stage, endMM, rulerConfig, 'end');
 
   const targetPool = ASSETS.catchPool;
@@ -416,19 +416,29 @@ function spawnProblem(stage, modeInfo, rulerConfig, slant = false) {
   return { startMM, lengthMM, endMM, targetFile: file, targetName: entry ? entry.name : '', diagonal, angleDeg, startX, startY, endX, endY, rulerTop, spawnRot, dirCos, dirSin, pivotX, pivotY };
 }
 
-function addEndpointAt(stage, x, top, kind) {
+function addEndpointAt(stage, x, top, kind, angleDeg = null) {
   const line = document.createElement('div');
   line.className = `endpoint ${kind}`;
   line.style.left = `${x}px`;
   if (top !== null && top !== undefined) line.style.top = `${top}px`;
+  styleSlantEndpoint(line, angleDeg);
   stage.appendChild(line);
 }
 
-function addEndpoint(stage, mm, rulerConfig, kind, topPx = null) {
+function styleSlantEndpoint(line, angleDeg) {
+  if (angleDeg === null || angleDeg === undefined) return;
+  line.classList.add('slant');
+  line.style.height = '48px';
+  line.style.transform = `translateX(-50%) rotate(${angleDeg}deg)`;
+  line.style.setProperty('--erot', `${-angleDeg}deg`);
+}
+
+function addEndpoint(stage, mm, rulerConfig, kind, topPx = null, angleDeg = null) {
   const line = document.createElement('div');
   line.className = `endpoint ${kind}`;
   line.style.left = `${mmToPx(mm, rulerConfig)}px`;
   if (topPx !== null) line.style.top = `${topPx}px`;
+  styleSlantEndpoint(line, angleDeg);
   stage.appendChild(line);
 }
 
