@@ -319,3 +319,23 @@
 .ruler-rotate-knob[hidden] { display: none; }
 .slant-picker { margin-top: 12px; padding-top: 12px; }
 .level-chip.level-position strong { width: auto; height: auto; border-radius: 999px; padding: 2px 7px; }
+
+/* ホーム再構成：つかまえようをメインに */
+.main-play-card { border: 2px solid #f59e0b; background: linear-gradient(180deg, #fffbeb, #ffffff); border-radius: 18px; padding: 18px; margin-bottom: 14px; }
+.main-play-head { display: flex; gap: 16px; align-items: center; }
+.main-play-img { width: 104px; height: 104px; object-fit: contain; flex: none; }
+.main-play-copy h2 { margin: 2px 0 4px; font-size: 1.45rem; line-height: 1.3; }
+.main-play-copy p { margin: 0; color: #475569; font-size: .9rem; line-height: 1.55; font-weight: 600; }
+.main-play-settings { margin-top: 16px; display: grid; gap: 16px; }
+.main-start { width: 100%; margin-top: 18px; min-height: 56px; font-size: 1.12rem; }
+.sub-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; align-items: start; }
+.sub-card { border: 1px solid var(--hunter-line); border-radius: 18px; background: #fff; padding: 16px 18px; }
+.sub-card h3 { margin: 2px 0 4px; font-size: 1.15rem; }
+.sub-card p { margin: 0; color: #475569; font-size: .86rem; line-height: 1.55; font-weight: 600; }
+.sub-side { display: grid; gap: 14px; }
+.sub-side .feature-card { width: 100%; }
+.read-pos-picker { margin-top: 12px; padding-top: 12px; }
+@media (max-width: 900px) {
+  .sub-grid { grid-template-columns: 1fr; }
+  .main-play-head { flex-direction: column; align-items: flex-start; }
+}
