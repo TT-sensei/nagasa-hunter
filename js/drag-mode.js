@@ -20,10 +20,10 @@ const UNSNAP_PX = 12;
 const UNSNAP_MM = 4;    // ここまで離れたら吸着が外れたとみなす
 const COLLECTION_KEY = 'nagasa-hunter.navianGets.v1';
 
-export function startDragMode(root, { mode = 'cm' } = {}) {
+export function startDragMode(root, { mode = 'cm', slant = false } = {}) {
   const modeInfo = MODE[mode] || MODE.cm;
   const levelNo = mode === 'decimal' ? 3 : mode === 'mm' ? 2 : 1;
-  root.innerHTML = template(modeInfo, levelNo);
+  root.innerHTML = template(modeInfo, levelNo, slant);
 
   const rulerContainer = root.querySelector('#ruler');
   const scrollEl = root.querySelector('#rulerScroll');
@@ -48,8 +48,19 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   grip.style.width = rulerPxWidth;
   grip.textContent = 'ものさしを うごかす（たて・よこ）';
   rulerContainer.appendChild(grip);
+  rulerContainer.style.transformOrigin = '0px 24px';
+  let knob = null;
+  if (slant) {
+    knob = document.createElement('div');
+    knob.className = 'ruler-rotate-knob';
+    knob.textContent = '↻';
+    knob.style.left = `${mmToPx(70, rulerConfig)}px`;
+    knob.hidden = true;
+    rulerContainer.appendChild(knob);
+  }
   board.style.width = `${mmToPx(rulerConfig.maxMM, rulerConfig) + mmToPx(64, rulerConfig) + 24}px`;
-  board.style.minHeight = '252px';
+  board.style.minHeight = slant ? '540px' : '252px';
+  if (slant) stage.style.height = '480px';
   setupAnswerInputs(root, modeInfo);
 
   const zeroLine = document.createElement('div');
@@ -62,6 +73,10 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   let hSnap = false;
   let vSnap = false;
   let wasAligned = false;
+  let rotDeg = 0;
+  let angleOk = true;
+  let posOk = true;
+  let alignedNow = false;
   let locked = false;
   let streak = getStats().streak;
   let solved = 0;
@@ -72,23 +87,31 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   playSound('questionStart', 0.16);
 
   function applyShift() {
-    rulerContainer.style.transform = `translate(${mmToPx(shiftMM, rulerConfig)}px, ${dyPx}px)`;
+    rulerContainer.style.transform = `translate(${mmToPx(shiftMM, rulerConfig)}px, ${dyPx}px) rotate(${rotDeg}deg)`;
   }
 
   function updateAlignUI() {
-    const aligned = hSnap && vSnap;
+    const diag = !!(current && current.diagonal);
+    const aligned = diag ? (angleOk && posOk) : (hSnap && vSnap && angleOk);
+    alignedNow = aligned;
     if (aligned && !wasAligned) playSound('questionStart', 0.12);
     wasAligned = aligned;
     alignEl.textContent = aligned
-      ? '0が 合った！'
-      : hSnap
-        ? 'あとは 上下を合わせよう'
-        : vSnap
-          ? 'あとは 0を合わせよう'
-          : '0が 合っていない';
+      ? (diag ? '0と向きが 合った！' : '0が 合った！')
+      : diag
+        ? (!angleOk && !posOk
+          ? '向きと0を合わせよう'
+          : !angleOk
+            ? 'あとは 向きを合わせよう（金色の丸）'
+            : 'あとは 0の場所を合わせよう')
+        : hSnap
+          ? 'あとは 上下を合わせよう'
+          : vSnap
+            ? 'あとは 0を合わせよう'
+            : '0が 合っていない';
     alignEl.classList.toggle('is-ok', aligned);
     rulerContainer.classList.toggle('is-aligned', aligned);
-    zeroLine.classList.toggle('show', hSnap);
+    zeroLine.classList.toggle('show', hSnap && !diag);
     stage.querySelector('.endpoint.start')?.classList.toggle('is-hit', aligned);
   }
 
@@ -103,6 +126,7 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
     }
     applyShift();
     updateAlignUI();
+    updateDiagonalSnap();
     if (fromDrag) nudgeScroll();
   }
 
@@ -116,6 +140,44 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
     }
     applyShift();
     updateAlignUI();
+    updateDiagonalSnap();
+  }
+
+  const ANGLE_SNAP = 3;
+  const ANGLE_UNSNAP = 5;
+  function setRot(value) {
+    if (!current || !current.diagonal) { rotDeg = 0; applyShift(); return; }
+    rotDeg = Math.max(-100, Math.min(100, value));
+    const off = Math.abs(rotDeg - current.angleDeg);
+    if (off <= ANGLE_SNAP) { rotDeg = current.angleDeg; angleOk = true; }
+    else if (off > ANGLE_UNSNAP) { angleOk = false; }
+    applyShift();
+    updateAlignUI();
+  }
+  function updateDiagonalSnap() {
+    if (!current || !current.diagonal) return;
+    const pv = pivotBoardPos();
+    const dx = current.pivotX - pv.x;
+    const dy = current.pivotY - pv.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 10) {
+      if (dx !== 0 || dy !== 0) {
+        shiftMM += dx / rulerConfig.pxPerMM;
+        dyPx += dy;
+        applyShift();
+      }
+      posOk = true;
+      updateAlignUI();
+    } else if (dist > 16) {
+      if (posOk) { posOk = false; updateAlignUI(); }
+    }
+  }
+  function pointerBoardPos(event) {
+    const rect = board.getBoundingClientRect();
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+  }
+  function pivotBoardPos() {
+    return { x: rulerContainer.offsetLeft + mmToPx(shiftMM, rulerConfig), y: rulerContainer.offsetTop + dyPx + 24 };
   }
 
   function nudgeScroll() {
@@ -128,7 +190,13 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   let dragState = null;
   rulerContainer.addEventListener('pointerdown', (event) => {
     if (locked) return;
-    dragState = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, startShift: shiftMM, startDy: dyPx, clientX: event.clientX };
+    const rotating = !!(knob && !knob.hidden && event.target === knob);
+    dragState = { pointerId: event.pointerId, kind: rotating ? 'rotate' : 'move', startX: event.clientX, startY: event.clientY, startShift: shiftMM, startDy: dyPx, clientX: event.clientX, rotOffset: 0 };
+    if (rotating) {
+      const pt = pointerBoardPos(event);
+      const pv = pivotBoardPos();
+      dragState.rotOffset = rotDeg - Math.atan2(pt.y - pv.y, pt.x - pv.x) * 180 / Math.PI;
+    }
     rulerContainer.setPointerCapture(event.pointerId);
     rulerContainer.classList.add('is-dragging');
     event.preventDefault();
@@ -136,22 +204,46 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
   rulerContainer.addEventListener('pointermove', (event) => {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     dragState.clientX = event.clientX;
+    if (dragState.kind === 'rotate') {
+      const pt = pointerBoardPos(event);
+      const pv = pivotBoardPos();
+      setRot(Math.atan2(pt.y - pv.y, pt.x - pv.x) * 180 / Math.PI + dragState.rotOffset);
+      return;
+    }
     const dxMM = (event.clientX - dragState.startX) / rulerConfig.pxPerMM;
     setShift(dragState.startShift + dxMM, true);
     setDy(dragState.startDy + (event.clientY - dragState.startY));
   });
   const endDrag = (event) => {
     if (!dragState || event.pointerId !== dragState.pointerId) return;
+    const wasRotate = dragState.kind === 'rotate';
     dragState = null;
     rulerContainer.classList.remove('is-dragging');
     setShift(shiftMM);
     setDy(dyPx);
+    if (wasRotate) setRot(rotDeg);
   };
   rulerContainer.addEventListener('pointerup', endDrag);
   rulerContainer.addEventListener('pointercancel', endDrag);
 
   function spawn() {
-    current = spawnProblem(stage, modeInfo, rulerConfig);
+    current = spawnProblem(stage, modeInfo, rulerConfig, slant);
+    if (current.diagonal) {
+      // pivotX/pivotYはstage内座標で作られているので、board座標へそろえる
+      current.pivotX += stage.offsetLeft;
+      current.pivotY += stage.offsetTop;
+      rulerContainer.style.top = `${current.rulerTop}px`;
+      rotDeg = current.spawnRot;
+      angleOk = false;
+      posOk = false;
+      if (knob) knob.hidden = false;
+    } else {
+      rulerContainer.style.top = '';
+      rotDeg = 0;
+      angleOk = true;
+      posOk = true;
+      if (knob) knob.hidden = true;
+    }
     zeroLine.style.left = `${40 + mmToPx(current.startMM, rulerConfig)}px`;
     hSnap = false;
     vSnap = false;
@@ -159,6 +251,11 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
     shiftMM = pickInitialShift(current.startMM);
     if (Math.abs(shiftMM - current.startMM) <= SNAP_MM) shiftMM = current.startMM + 30;
     dyPx = pickInitialDy();
+    if (current.diagonal) {
+      const pvx = rulerContainer.offsetLeft + mmToPx(shiftMM, rulerConfig);
+      const pvy = current.rulerTop + dyPx + 24;
+      if (Math.hypot(current.pivotX - pvx, current.pivotY - pvy) < 24) shiftMM = Math.min(150, shiftMM + 34);
+    }
     applyShift();
     updateAlignUI();
     scrollEl.scrollLeft = Math.max(0, mmToPx(current.startMM, rulerConfig) - 150);
@@ -194,10 +291,12 @@ export function startDragMode(root, { mode = 'cm' } = {}) {
         ? `${current.targetName}をつかまえた！ 0を合わせて、きちんと読めました。`
         : 'ナビアンをつかまえた！ 0を合わせて、きちんと読めました。';
       feedback.className = 'feedback-message is-correct';
-    } else if (!(hSnap && vSnap)) {
+    } else if (!alignedNow) {
       resultEl.textContent = 'おしい！';
       resultEl.className = 'answer-result is-wrong';
-      feedback.textContent = 'ものさしの当て方を確認しよう。0の目盛が「ここから」に合っているかな？ 上下の位置も、線のすぐ下に合わせよう。';
+      feedback.textContent = current.diagonal
+        ? 'ものさしの当て方を確認しよう。金色の丸で向きを線に合わせ、0の目盛を「ここから」に合わせよう。'
+        : 'ものさしの当て方を確認しよう。0の目盛が「ここから」に合っているかな？ 上下の位置も、線のすぐ下に合わせよう。';
       feedback.className = 'feedback-message is-wrong';
     } else {
       resultEl.textContent = 'おしい！';
@@ -240,28 +339,71 @@ function getRulerConfig(modeInfo) {
   };
 }
 
-function spawnProblem(stage, modeInfo, rulerConfig) {
+function spawnProblem(stage, modeInfo, rulerConfig, slant = false) {
   stage.innerHTML = '';
   const minLength = modeInfo.key === 'cm' ? 30 : 20;
   const maxLength = modeInfo.key === 'cm' ? 150 : 160;
-  const lengthMM = randomStep(minLength, maxLength, modeInfo.lengthStepMM);
+  const diagonal = !!slant && Math.random() < 0.55;
+  let angleDeg = 0, dirCos = 1, dirSin = 0;
+  let lengthCap = maxLength;
+  if (diagonal) {
+    const band = Math.random();
+    const mag = band < 0.4 ? 15 + Math.random() * 25 : band < 0.75 ? 40 + Math.random() * 30 : 70 + Math.random() * 20;
+    angleDeg = Math.round(mag) * (Math.random() < 0.5 ? -1 : 1);
+    const rad = angleDeg * Math.PI / 180;
+    dirCos = Math.cos(rad);
+    dirSin = Math.sin(rad);
+    const capX = Math.abs(dirCos) > 0.02 ? 900 / Math.abs(dirCos) : Infinity;
+    const capY = Math.abs(dirSin) > 0.02 ? (dirSin > 0 ? 400 : 380) / Math.abs(dirSin) : Infinity;
+    lengthCap = Math.min(maxLength, Math.floor(Math.min(capX, capY) / rulerConfig.pxPerMM));
+  }
+  const lengthMM = randomStep(minLength, Math.max(minLength, lengthCap), modeInfo.lengthStepMM);
   let startMM = randomStep(30, 110, 1);
   if (startMM + lengthMM > 195) startMM = 195 - lengthMM;
   const endMM = startMM + lengthMM;
 
+  const startX = mmToPx(startMM, rulerConfig);
+  const lenPx = mmToPx(lengthMM, rulerConfig);
+  let startY = 80, endX = mmToPx(endMM, rulerConfig), endY = 80;
+  let rulerTop = null, spawnRot = 0, pivotX = null, pivotY = null;
+  if (diagonal) {
+    if (dirSin > 0) startY = 64;
+    else if (dirSin < 0) startY = 84 + lenPx * Math.abs(dirSin);
+    endX = startX + lenPx * dirCos;
+    endY = startY + lenPx * dirSin;
+    pivotX = startX - dirSin * 36;
+    pivotY = startY + dirCos * 36;
+    rulerTop = pivotY - 24;
+    const offMag = 12 + Math.random() * 14;
+    const candidates = [angleDeg + offMag, angleDeg - offMag, angleDeg + (angleDeg > 0 ? -12 : 12)];
+    spawnRot = candidates.find((r) => {
+      const ky = pivotY + mmToPx(70, rulerConfig) * Math.sin(r * Math.PI / 180);
+      return ky >= 34 && ky <= 506 && Math.abs(r - angleDeg) >= 10;
+    });
+    if (spawnRot === undefined) spawnRot = angleDeg + (angleDeg > 0 ? -12 : 12);
+    spawnRot = Math.max(-95, Math.min(95, spawnRot));
+  }
+
   const segment = document.createElement('div');
   segment.className = 'measure-segment';
-  segment.style.left = `${mmToPx(startMM, rulerConfig)}px`;
-  segment.style.width = `${mmToPx(lengthMM, rulerConfig)}px`;
+  segment.style.left = `${startX}px`;
+  segment.style.width = `${lenPx}px`;
+  if (diagonal) {
+    segment.style.top = `${startY}px`;
+    segment.style.transform = `translateY(-50%) rotate(${angleDeg}deg)`;
+    segment.style.transformOrigin = '0 50%';
+  }
   stage.appendChild(segment);
-  addEndpoint(stage, startMM, rulerConfig, 'start');
-  addEndpoint(stage, endMM, rulerConfig, 'end');
+  addEndpoint(stage, startMM, rulerConfig, 'start', diagonal ? startY - 41 : null);
+  if (diagonal) addEndpointAt(stage, endX, endY - 40, 'end');
+  else addEndpoint(stage, endMM, rulerConfig, 'end');
 
   const targetPool = ASSETS.catchPool;
   const index = Math.floor(Math.random() * targetPool.length);
   const wrap = document.createElement('div');
   wrap.className = 'target';
-  wrap.style.left = `${mmToPx(endMM, rulerConfig)}px`;
+  wrap.style.left = `${diagonal ? endX : mmToPx(endMM, rulerConfig)}px`;
+  if (diagonal) wrap.style.top = `${endY - 76}px`;
   const img = document.createElement('img');
   img.src = targetPool[index];
   img.alt = 'にげたナビアン';
@@ -271,13 +413,22 @@ function spawnProblem(stage, modeInfo, rulerConfig) {
 
   const file = (targetPool[index] || '').split('/').pop();
   const entry = ASSETS.collection.find((item) => item.file === file);
-  return { startMM, lengthMM, endMM, targetFile: file, targetName: entry ? entry.name : '' };
+  return { startMM, lengthMM, endMM, targetFile: file, targetName: entry ? entry.name : '', diagonal, angleDeg, startX, startY, endX, endY, rulerTop, spawnRot, dirCos, dirSin, pivotX, pivotY };
 }
 
-function addEndpoint(stage, mm, rulerConfig, kind) {
+function addEndpointAt(stage, x, top, kind) {
+  const line = document.createElement('div');
+  line.className = `endpoint ${kind}`;
+  line.style.left = `${x}px`;
+  if (top !== null && top !== undefined) line.style.top = `${top}px`;
+  stage.appendChild(line);
+}
+
+function addEndpoint(stage, mm, rulerConfig, kind, topPx = null) {
   const line = document.createElement('div');
   line.className = `endpoint ${kind}`;
   line.style.left = `${mmToPx(mm, rulerConfig)}px`;
+  if (topPx !== null) line.style.top = `${topPx}px`;
   stage.appendChild(line);
 }
 
@@ -351,13 +502,15 @@ function renderResult(root, problem, guessMM, correct, modeInfo, rulerConfig) {
   stage.querySelectorAll('.answer-marker, .guess-marker').forEach((node) => node.remove());
   const answerMarker = document.createElement('div');
   answerMarker.className = `answer-marker ${correct ? 'correct' : 'wrong'}`;
-  answerMarker.style.left = `${mmToPx(problem.endMM, rulerConfig)}px`;
+  answerMarker.style.left = `${problem.diagonal ? problem.endX : mmToPx(problem.endMM, rulerConfig)}px`;
+  if (problem.diagonal) answerMarker.style.top = `${problem.endY - 59}px`;
   answerMarker.textContent = '↓';
   stage.appendChild(answerMarker);
   if (!correct) {
     const guessMarker = document.createElement('div');
     guessMarker.className = 'guess-marker';
-    guessMarker.style.left = `${mmToPx(problem.startMM + guessMM, rulerConfig)}px`;
+    guessMarker.style.left = `${problem.diagonal ? problem.startX + mmToPx(guessMM, rulerConfig) * problem.dirCos : mmToPx(problem.startMM + guessMM, rulerConfig)}px`;
+    if (problem.diagonal) guessMarker.style.top = `${problem.startY + mmToPx(guessMM, rulerConfig) * problem.dirSin - 59}px`;
     guessMarker.textContent = 'あなたの答え';
     stage.appendChild(guessMarker);
   }
@@ -380,19 +533,19 @@ function randomStep(min, max, step) {
   return first + step * Math.floor(Math.random() * count);
 }
 
-function template(modeInfo, levelNo) {
+function template(modeInfo, levelNo, slant = false) {
   return `
     <div class="hunter-shell">
       <header class="hunter-topbar">
         <div class="hunter-title-block"><div class="hunter-kicker">MONOSASHI HUNTER</div><div class="hunter-title-line"><h1>つかまえよう</h1><span class="edu-badge edu-badge-primary">${modeInfo.title}</span></div><p>ものさしを動かして、0をはじまりに合わせよう</p></div>
         <div class="hunter-top-actions"><span id="progressText" class="progress-text">ここまで 0問</span><span id="catchCount" class="streak-pill">つかまえた 0体</span><span id="streak" class="streak-pill">れんぞく 0回</span><button id="soundBtn" type="button" class="edu-btn edu-btn-secondary sound-toggle" aria-pressed="true">音あり</button><button id="homeBtn" type="button" class="edu-btn edu-btn-secondary">もどる</button></div>
       </header>
-      <div class="level-strip" aria-label="レベル"><span class="level-strip-label">レベル</span><span class="level-chip ${levelNo === 1 ? 'is-current' : ''}"><strong>1</strong> cmまで</span><span class="level-chip ${levelNo === 2 ? 'is-current' : ''}"><strong>2</strong> cmとmmまで</span><span class="level-chip ${levelNo === 3 ? 'is-current' : ''}"><strong>3</strong> 小数で表す</span><span class="level-chip level-position"><strong>はじまり</strong> 自分で合わせる</span></div>
+      <div class="level-strip" aria-label="レベル"><span class="level-strip-label">レベル</span><span class="level-chip ${levelNo === 1 ? 'is-current' : ''}"><strong>1</strong> cmまで</span><span class="level-chip ${levelNo === 2 ? 'is-current' : ''}"><strong>2</strong> cmとmmまで</span><span class="level-chip ${levelNo === 3 ? 'is-current' : ''}"><strong>3</strong> 小数で表す</span><span class="level-chip level-position"><strong>はじまり</strong> 自分で合わせる</span>${slant ? '<span class="level-chip level-position"><strong>線</strong> 斜めも</span>' : ''}</div>
       <div class="learning-layout">
         <section class="ruler-panel edu-card"><div class="panel-heading"><div><div class="panel-kicker">まず当てる</div><h2>ものさしを当てよう</h2></div><span id="alignStatus" class="align-pill">0が 合っていない</span></div>
           <div class="reading-guide"><span class="guide-item"><i class="guide-dot guide-start"></i>ものさしを動かす</span><span class="guide-arrow">→</span><span class="guide-item"><i class="guide-dot guide-mid"></i>0を合わせる</span><span class="guide-arrow">→</span><span class="guide-item"><i class="guide-dot guide-end"></i>おわりを読む</span></div>
           <div class="ruler-scroll" id="rulerScroll"><div class="ruler-board" id="rulerBoard"><div class="stage" id="stage"></div><div id="ruler" class="ruler drag-ruler"></div></div></div>
-          <p class="ruler-help">ものさしの下の緑の部分を指で動かして、0の目盛を「ここから」に合わせよう。たてにも横にも動かせるよ。</p>
+          <p class="ruler-help">${slant ? 'ものさしの下の緑の部分を指で動かして、0の目盛を「ここから」に合わせよう。斜めの線は、金色の丸を動かすとものさしが回るよ。' : 'ものさしの下の緑の部分を指で動かして、0の目盛を「ここから」に合わせよう。たてにも横にも動かせるよ。'}</p>
         </section>
         <aside class="answer-panel edu-card edu-card-pad" aria-label="答える"><div class="answer-heading"><div class="panel-kicker">次に答える</div><h2>長さは？</h2></div>
           <div id="result" class="answer-result" aria-live="polite"></div>
